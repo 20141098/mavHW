@@ -1,11 +1,11 @@
 P.gravity = 9.8;
    
 %physical parameters of airframe
-P.mass = 10;
-P.Jx   = 5;
-P.Jy   = 5;
-P.Jz   = 5;
-P.Jxz  = 4;
+P.mass = 13.5;
+P.Jx   = .8244;
+P.Jy   = 1.135;
+P.Jz   = 1.759;
+P.Jxz  = .1204;
 
 % initial conditions
 P.pn0    =   0;% initial North position
