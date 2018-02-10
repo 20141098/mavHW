@@ -132,35 +132,29 @@ function sys=mdlDerivatives(t,x,uu, P)
     p     = x(10);
     q     = x(11);
     r     = x(12);
+    
     fx    = uu(1);
     fy    = uu(2);
     fz    = uu(3);
-    l   = uu(4);
+    l     = uu(4);
     m     = uu(5);
     n     = uu(6);
     
-    gamma = P.Jx*P.Jz - P.Jxz^2;
-    gamma1 = P.Jxz*(P.Jx - P.Jy + P.Jz)/gamma;
-    gamma2 = (P.Jz*(P.Jz-P.Jy)+P.Jxz^2)/gamma;
-    gamma3 = P.Jz/gamma;
-    gamma4 = P.Jxz/gamma;
-    gamma5 = (P.Jz - P.Jx)/P.Jy;
-    gamma6 = P.Jxz/P.Jy;
-    gamma7 = ((P.Jx-P.Jy)*P.Jx + P.Jxz^2)/gamma;
-    gamma8 = P.Jx/gamma;
-    
-    pndot = cos(theta)*cos(psi)*u - (sin(phi)*sin(theta)*cos(psi)-cos(phi)*sin(psi))*v +(cos(phi)*sin(theta)*cos(psi)+sin(phi)*sin(psi))*w;
-    pedot = cos(theta)*sin(psi)*u + (sin(phi)*sin(theta)*sin(psi)+cos(phi)*cos(psi))*v + (cos(phi)*sin(theta)*sin(psi)-sin(phi)*cos(psi))*w;
-    pddot = -sin(theta)*u + sin(phi)*cos(theta)*v + cos(phi)*cos(theta)*w;
-    udot = r*v - q*w + fx/P.mass;
-    vdot = p*w - r*u +fy/P.mass;
-    wdot = q*u - p*v + fz/P.mass;
-    phidot = p + sin(phi)*tan(theta)*q + cos(phi)*tan(theta)*r;
-    thetadot = cos(phi)*q - sin(phi)*r;
-    psidot = (sin(phi)/cos(theta))*q + (cos(phi)/cos(theta))*r;
-    pdot = gamma1*p*q - gamma2*q*r + gamma3*l + gamma4*n;
-    qdot = gamma5*p*r - gamma6*(p^2-r^2) + m/P.Jy;
-    rdot = gamma7*p*q - gamma1*q*r + gamma4*l + gamma8*n;
+    Rb2i =[cos(theta)*cos(psi),     sin(phi)*sin(theta)*cos(psi)-cos(phi)*sin(psi),     cos(phi)*sin(theta)*cos(psi)+sin(phi)*sin(psi);
+        cos(theta)*sin(psi),        sin(phi)*sin(theta)*sin(psi)+cos(phi)*cos(psi),     cos(phi)*sin(theta)*sin(psi)-sin(phi)*cos(psi);
+        -sin(theta),                sin(phi)*cos(theta),                                cos(phi)*cos(theta)];
+    pndot = cos(theta)*cos(psi)*u + (sin(phi)*sin(theta)*cos(psi)-cos(phi)*sin(psi))*v +(cos(phi)*sin(theta)*cos(psi)+sin(phi)*sin(psi))*w;%
+    pedot = cos(theta)*sin(psi)*u + (sin(phi)*sin(theta)*sin(psi)+cos(phi)*cos(psi))*v + (cos(phi)*sin(theta)*sin(psi)-sin(phi)*cos(psi))*w;%
+    pddot = -sin(theta)*u + sin(phi)*cos(theta)*v + cos(phi)*cos(theta)*w;%
+    udot = r*v - q*w + fx/P.mass;%
+    vdot = p*w - r*u +fy/P.mass;%
+    wdot = q*u - p*v + fz/P.mass;%
+    phidot = p + sin(phi)*tan(theta)*q + cos(phi)*tan(theta)*r;%
+    thetadot = cos(phi)*q - sin(phi)*r;%
+    psidot = (sin(phi)/cos(theta))*q + (cos(phi)/cos(theta))*r;%
+    pdot = P.Gamma1*p*q - P.Gamma2*q*r + P.Gamma3*l + P.Gamma4*n;%
+    qdot = P.Gamma5*p*r - P.Gamma6*(p^2-r^2) + m/P.Jy;%
+    rdot = P.Gamma7*p*q - P.Gamma1*q*r + P.Gamma4*l + P.Gamma8*n;%
 
 sys = [pndot; pedot; pddot; udot; vdot; wdot; phidot; thetadot; psidot; pdot; qdot; rdot];
 
