@@ -105,14 +105,6 @@ P.Gamma8 = P.Jx/P.Gamma;%
 
 % run trim commands
 [x_trim, u_trim]=compute_trim('mavsim_trim',P.Va0,gamma,R);
-% x_trim = [0;0;0;16.4537;0;4.2749;0;.2542;0;0;0;0];
-% a = x_trim(4);
-% b = x_trim(6);
-x_trim(8)=0.3;
-u_trim(1)=.85
-% x_trim(6)=a;
-% x_trim(4)=b;
-% u_trim = [-.2399;0;0;.2809];
 P.u_trim = u_trim;
 P.x_trim = x_trim;
 

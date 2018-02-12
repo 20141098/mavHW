@@ -15,22 +15,17 @@ delta_e = u_trim(1);
 % delta_r = u_trim(3);
 delta_t = u_trim(4);
 
-gamma = P.Jx*P.Jz - P.Jxz^2;
-gamma3 = P.Jz/gamma;
-gamma4 = P.Jxz/gamma;
-gamma5 = (P.Jz - P.Jx)/P.Jy;
-gamma6 = P.Jxz/P.Jy;
-Cpp = gamma3*P.C_ell_p+gamma4*P.C_n_p;
-Cpda=gamma3*P.C_ell_delta_a+gamma4*P.C_n_delta_a;
+Cpp = P.Gamma3*P.C_ell_p+P.Gamma4*P.C_n_p;
+Cpda=P.Gamma3*P.C_ell_delta_a+P.Gamma4*P.C_n_delta_a;
 %
 Va_trim    = norm(x_trim(4:6)); % norm of xtrim[4-6]
-a_phi1      = -.5*P.rho*Va_trim^2*P.b*P.S_wing*P.b^2*Cpp/(2*Va_trim);
+a_phi1     = -.5*P.rho*Va_trim^2*P.b*P.S_wing*P.b^2*Cpp/(2*Va_trim);
 a_phi2     = .5*P.rho*Va_trim^2*P.S_wing*P.b*Cpda;
 a_theta1   = -P.rho*Va_trim^2*P.c*P.S_wing*P.C_m_q*P.c/(4*P.Jy*Va_trim);
 a_theta2   = -P.rho*Va_trim^2*P.c*P.S_wing*P.C_m_alpha/(2*P.Jy);
 a_theta3   = P.rho*Va_trim^2*P.c*P.S_wing*P.C_m_delta_e/(2*P.Jy);
 d_theta1   = x_trim(11)*(cos(x_trim(7))-1)-x_trim(12);
-d_theta2   = gamma6*(r^2-p^2)+gamma5*p*r+P.rho*Va_trim^2*P.c*P.S_wing*(P.C_m_0-P.C_m_alpha*gamma-P.C_m_q*P.c*d_theta1/(2*Va_trim))/(2*P.Jy)+d_theta1;
+d_theta2   = P.Gamma6*(r^2-p^2)+P.Gamma5*p*r+P.rho*Va_trim^2*P.c*P.S_wing*(P.C_m_0-P.C_m_alpha*P.Gamma-P.C_m_q*P.c*d_theta1/(2*Va_trim))/(2*P.Jy)+d_theta1;
 theta_trim = x_trim(8);
  
 
