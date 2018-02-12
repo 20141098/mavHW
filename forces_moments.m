@@ -45,13 +45,18 @@ function out = forces_moments(x, delta, wind, P)
 %     w_wg = 0;
     
     % compute wind data in NED
-    w_n = w_ns + u_wg;
-    w_e = w_es + v_wg;
-    w_d = w_ds + w_wg;
+    Rb2i =[cos(theta)*cos(psi),     sin(phi)*sin(theta)*cos(psi)-cos(phi)*sin(psi),     cos(phi)*sin(theta)*cos(psi)+sin(phi)*sin(psi);
+        cos(theta)*sin(psi),        sin(phi)*sin(theta)*sin(psi)+cos(phi)*cos(psi),     cos(phi)*sin(theta)*sin(psi)-sin(phi)*cos(psi);
+        -sin(theta),                sin(phi)*cos(theta),                                cos(phi)*cos(theta)];
+    wind = Rb2i*[u_wg;v_wg;w_wg];
+    w_n = w_ns + wind(1);
+    w_e = w_es + wind(2);
+    w_d = w_ds + wind(3);
     
-    u_r = u - u_wg;
-    v_r = v - v_wg;
-    w_r = w - w_wg;
+    velocity = Rb2i'*[w_n;w_e;w_d];
+    u_r = u - velocity(1);
+    v_r = v - velocity(2);
+    w_r = w - velocity(3);
     
     % compute air data
     Va = sqrt(u_r^2 + v_r^2 + w_r^2);
@@ -59,16 +64,12 @@ function out = forces_moments(x, delta, wind, P)
     beta = asin(v_r/Va);
     
     % compute external forces and torques on aircraft
-%     C_X = -P.C_D_alpha*cos(alpha) + P.C_L_alpha*sin(alpha);
-%     C_X_q = -P.C_D_q * cos(alpha) + P.C_L_q*sin(alpha);
-%     C_X_de = -P.C_D_delta_e * cos(alpha) + P.C_L_delta_e * sin(alpha);
-%     C_Z = -P.C_D_alpha*sin(alpha) - P.C_L_alpha * cos(alpha);
-%     C_Z_q = -P.C_D_q * sin(alpha) - P.C_L_q*cos(alpha);
-%     C_Z_de = -P.C_D_delta_e*sin(alpha) - P.C_L_delta_e * cos(alpha);
-    C_X_alpha = -P.C_D_alpha*cos(alpha) + P.C_L_alpha*sin(alpha);
+    C_L_alpha = P.C_L_0 + P.C_L_alpha*alpha;
+    C_D_alpha = P.C_D_0 + P.C_D_alpha*alpha;
+    C_X_alpha = -C_D_alpha*cos(alpha) + C_L_alpha*sin(alpha);
     C_X_q = -P.C_D_q*cos(alpha)+P.C_L_q*sin(alpha);
     C_X_de = -P.C_D_delta_e*cos(alpha) + P.C_L_delta_e*sin(alpha);
-    C_Z_alpha = -P.C_D_alpha*sin(alpha)-P.C_L_alpha*cos(alpha);
+    C_Z_alpha = -C_D_alpha*sin(alpha)-C_L_alpha*cos(alpha);
     C_Z_q = -P.C_D_q*sin(alpha)-P.C_L_q*cos(alpha);
     C_Z_de = -P.C_D_delta_e*sin(alpha)-P.C_L_delta_e*cos(alpha);
     

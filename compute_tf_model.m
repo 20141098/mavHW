@@ -24,8 +24,8 @@ a_phi2     = .5*P.rho*Va_trim^2*P.S_wing*P.b*Cpda;
 a_theta1   = -P.rho*Va_trim^2*P.c*P.S_wing*P.C_m_q*P.c/(4*P.Jy*Va_trim);
 a_theta2   = -P.rho*Va_trim^2*P.c*P.S_wing*P.C_m_alpha/(2*P.Jy);
 a_theta3   = P.rho*Va_trim^2*P.c*P.S_wing*P.C_m_delta_e/(2*P.Jy);
-d_theta1   = x_trim(11)*(cos(x_trim(7))-1)-x_trim(12);
-d_theta2   = P.Gamma6*(r^2-p^2)+P.Gamma5*p*r+P.rho*Va_trim^2*P.c*P.S_wing*(P.C_m_0-P.C_m_alpha*P.Gamma-P.C_m_q*P.c*d_theta1/(2*Va_trim))/(2*P.Jy)+d_theta1;
+% d_theta1   = x_trim(11)*(cos(x_trim(7))-1)-x_trim(12);
+% d_theta2   = P.Gamma6*(r^2-p^2)+P.Gamma5*p*r+P.rho*Va_trim^2*P.c*P.S_wing*(P.C_m_0-P.C_m_alpha*P.Gamma-P.C_m_q*P.c*d_theta1/(2*Va_trim))/(2*P.Jy)+d_theta1;
 theta_trim = x_trim(8);
  
 
