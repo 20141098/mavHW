@@ -130,11 +130,3 @@ P.r0     = x_trim(12);  % initial body frame yaw rate
 % linearize the equations of motion around trim conditions
 [A_lon, B_lon, A_lat, B_lat] = compute_ss_model('mavsim_trim',x_trim,u_trim);
 
-
-
-%
-P.delta_a_max = 45*pi/180;
-P.e_phi_max = 15*pi/180;
-P.Va_nominal = 10;
-P.W_chi = 5;
-P.Zeta_chi = 0;
