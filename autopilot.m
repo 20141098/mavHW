@@ -46,7 +46,7 @@ function y = autopilot(uu,P)
         case 2,
            [delta, x_command] = autopilot_uavbook(Va_c,h_c,chi_c,Va,h,chi,phi,theta,p,q,r,t,P);
         case 3,
-               [delta, x_command] = autopilot_TECS(Va_c,h_c,chi_c,Va,h,chi,phi,theta,p,q,r,t,P);
+           [delta, x_command] = autopilot_TECS(Va_c,h_c,chi_c,Va,h,chi,phi,theta,p,q,r,t,P);
     end
     y = [delta; x_command];
 end
@@ -197,12 +197,19 @@ function [delta, x_command] = autopilot_uavbook(Va_c,h_c,chi_c,Va,h,chi,phi,thet
     % implement state machine
     switch altitude_state,
         case 1,  % in take-off zone
-            
+            theta_c = 30*pi/180;
+            delta_t = 1;
         case 2,  % climb zone
+            theta_c = 15*pi/180;
+            delta_t = 1;
              
         case 3, % descend zone
+            theta_c = -15*pi/180;
+            delta_t = 0;
 
         case 4, % altitude hold zone
+            delta_t = .5;
+            theta_c = 0;
     end
     
     delta_e = pitch_hold(theta_c, theta, q, P);

@@ -138,3 +138,6 @@ P.e_phi_max = 15*pi/180;
 P.Va_nominal = 10;
 P.W_chi = 5;
 P.Zeta_chi = 0;
+P.Zeta_phi = 0;
+P.altitude_take_off_zone = 0;
+P.altitude_hold_zone = 0;
