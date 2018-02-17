@@ -134,17 +134,21 @@ P.r0     = x_trim(12);  % initial body frame yaw rate
 %
 P.delta_a_max = 45*pi/180;
 P.e_phi_max = 30*pi/180;
+P.Zeta_phi = 2;
 
 P.delta_e_max = 45*pi/180;
 P.e_theta_max = 30*pi/180;
+P.Zeta_theta = .1;
+
+
 P.Va_nominal = 10;
-P.W_chi = 5;
 P.W_h = 5;
 P.W_V2 = 2;
 
-P.Zeta_phi = 2;
-P.Zeta_chi = .01;
-P.Zeta_theta = .1;
+P.W_chi = 10;
+P.Zeta_chi = 4;
+
+
 P.Zeta_V = .3;
 P.Zeta_h = .1;
 
@@ -153,4 +157,4 @@ P.omega_n_v = .3;
 P.altitude_take_off_zone = 20;
 P.altitude_hold_zone = 5;
 
-P.K_theta_DC = 0;
+P.K_theta_DC = 5;

@@ -22,7 +22,7 @@ function y = autopilot(uu,P)
     p        = uu(10+NN); % body frame roll rate
     q        = uu(11+NN); % body frame pitch rate
     r        = uu(12+NN); % body frame yaw rate
-%    Vg       = uu(13+NN); % ground speed
+    Vg       = uu(13+NN); % ground speed
 %    wn       = uu(14+NN); % wind North
 %    we       = uu(15+NN); % wind East
 %    psi      = uu(16+NN); % heading
@@ -42,7 +42,7 @@ function y = autopilot(uu,P)
         % autopilot_version == 3 <- Total Energy Control for longitudinal AP
     switch autopilot_version
         case 1,
-           [delta, x_command] = autopilot_tuning(Va_c,h_c,chi_c,Va,h,chi,phi,theta,p,q,r,t,P);
+           [delta, x_command] = autopilot_tuning(Va_c,h_c,chi_c,Va,Vg,h,chi,phi,theta,p,q,r,t,P);
         case 2,
            [delta, x_command] = autopilot_uavbook(Va_c,h_c,chi_c,Va,h,chi,phi,theta,p,q,r,t,P);
         case 3,
@@ -62,11 +62,11 @@ end
 % autopilot_tuning
 %   - used to tune each loop
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [delta, x_command] = autopilot_tuning(Va_c,h_c,chi_c,Va,h,chi,phi,theta,p,q,r,t,P)
+function [delta, x_command] = autopilot_tuning(Va_c,h_c,chi_c,Va,Vg,h,chi,phi,theta,p,q,r,t,P)
 
-    mode = 3;
+    mode = 2;
     switch mode
-        case 1, % tune the roll loop
+        case 1 % tune the roll loop -- tuned
             phi_c = chi_c; % interpret chi_c to autopilot as course command
             delta_a = roll_hold(phi_c, phi, p, P);
             delta_r = 0; % no rudder
@@ -74,11 +74,11 @@ function [delta, x_command] = autopilot_tuning(Va_c,h_c,chi_c,Va,h,chi,phi,theta
             delta_e = P.u_trim(1);
             delta_t = P.u_trim(4);
             theta_c = 0;
-        case 2, % tune the course loop
-            if t==0,
-                phi_c   = course_hold(chi_c, chi, r, 1, P);
+        case 2 % tune the course loop
+            if t==0
+                phi_c   = course_hold(chi_c, chi, r, Vg, 1, P);
             else
-                phi_c   = course_hold(chi_c, chi, r, 0, P);
+                phi_c   = course_hold(chi_c, chi, r, Vg, 0, P);
             end                
             delta_a = roll_hold(phi_c, phi, p, P);
             delta_r = 0; % no rudder
@@ -86,10 +86,10 @@ function [delta, x_command] = autopilot_tuning(Va_c,h_c,chi_c,Va,h,chi,phi,theta
             delta_e = P.u_trim(1);
             delta_t = P.u_trim(4);
             theta_c = 0;
-        case 3, % tune the throttle to airspeed loop and pitch loop simultaneously
+        case 3 % tune the throttle to airspeed loop and pitch loop simultaneously
             theta_c = 20*pi/180 + h_c;
             chi_c = 0;
-            if t==0,
+            if t==0
                 phi_c   = course_hold(chi_c, chi, r, 1, P);
                 delta_t = airspeed_with_throttle_hold(Va_c, Va, 1, P);
            else
@@ -100,10 +100,10 @@ function [delta, x_command] = autopilot_tuning(Va_c,h_c,chi_c,Va,h,chi,phi,theta
             delta_a = roll_hold(phi_c, phi, p, P);
             delta_r = 0; % no rudder
             % use trim values for elevator and throttle while tuning the lateral autopilot
-        case 4, % tune the pitch to airspeed loop 
+        case 4 % tune the pitch to airspeed loop 
             chi_c = 0;
             delta_t = P.u_trim(4);
-            if t==0,
+            if t==0
                 phi_c   = course_hold(chi_c, chi, r, 1, P);
                 theta_c = airspeed_with_pitch_hold(Va_c, Va, 1, P);
            else
@@ -114,9 +114,9 @@ function [delta, x_command] = autopilot_tuning(Va_c,h_c,chi_c,Va,h,chi,phi,theta
             delta_e = pitch_hold(theta_c, theta, q, P);
             delta_r = 0; % no rudder
             % use trim values for elevator and throttle while tuning the lateral autopilot
-        case 5, % tune the pitch to altitude loop 
+        case 5 % tune the pitch to altitude loop 
             chi_c = 0;
-            if t==0,
+            if t==0
                 phi_c   = course_hold(chi_c, chi, r, 1, P);
                 theta_c = altitude_hold(h_c, h, 1, P);
                 delta_t = airspeed_with_throttle_hold(Va_c, Va, 1, P);
@@ -340,14 +340,14 @@ function [delta_e] = pitch_hold(theta_c, theta, q, P)
     delta_e = K_p_theta*(theta_c - theta) - K_d_theta*q;
 end
 
-function [phi_c] = course_hold(chi_c, chi, r, flag, P)
+function [phi_c] = course_hold(chi_c, chi, r, Vg, flag, P)
     persistent i_error;
     if flag == 1
         i_error = 0;
     end
     omega_n_phi = (abs(P.a_phi2)*P.delta_a_max/P.e_phi_max)^.5;
     omega_n_chi = omega_n_phi/P.W_chi;
-    Vg          = P.Va_nominal;
+
     i_error = i_error + (chi_c - chi);
     K_p_chi     = 2*P.Zeta_chi*omega_n_chi*Vg/P.gravity;
 
@@ -385,19 +385,20 @@ function [theta_c] = airspeed_with_pitch_hold(Va_c, Va, flag, P)
     
     theta_c = K_p_V2*(Va_c - Va) + K_i_V2*i_error;
 end
-function [theta_c] = altitude_hold(h_c, h, P)
+function [theta_c] = altitude_hold(h_c, h, flag, P)
+    persistent i_error;
+    if flag == 1
+        i_error = 0;
+    end
+    i_error = i_error + (h_c - h);
     Va_trim    = norm(P.x_trim(4:6));
-    s           = P.S_wing;
-%     a_theta1   = -P.rho*Va_trim^2*P.c*P.S_wing*P.C_m_q*P.c/(4*P.Jy*Va_trim);
-    a_theta2   = -P.rho*Va_trim^2*P.c*P.S_wing*P.C_m_alpha/(2*P.Jy);
-    a_theta3   = P.rho*Va_trim^2*P.c*P.S_wing*P.C_m_delta_e/(2*P.Jy);
-    w_n_theta = (a_theta2 + P.delta_e_max*abs(a_theta3)/P.e_theta_max)^.5;
+    w_n_theta = (P.a_theta2 + P.delta_e_max*abs(P.a_theta3)/P.e_theta_max)^.5;
     w_n_h = w_n_theta/P.W_h;
     
     K_i_h = w_n_h^2/(P.K_theta_DC*Va_trim);
     K_p_h = 2*P.Zeta_h*w_n_h/(P.K_theta_DC * Va_trim);
 
-    theta_c = K_p_h*(h_c - h) + K_i_h*(h_c - h)/s;
+    theta_c = K_p_h*(h_c - h) + K_i_h*i_error;
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % sat
