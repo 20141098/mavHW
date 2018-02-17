@@ -122,9 +122,8 @@ P.psi0   = x_trim(9);  % initial yaw angle
 P.p0     = x_trim(10);  % initial body frame roll rate
 P.q0     = x_trim(11);  % initial body frame pitch rate
 P.r0     = x_trim(12);  % initial body frame yaw rate
-
 % compute different transfer functions
-[T_phi_delta_a,T_chi_phi,T_theta_delta_e,T_h_theta,T_h_Va,T_Va_delta_t,T_Va_theta,T_v_delta_r]...
+[T_phi_delta_a,T_chi_phi,T_theta_delta_e,T_h_theta,T_h_Va,T_Va_delta_t,T_Va_theta,T_v_delta_r, P.a_phi1, P.a_phi2, P.a_theta1, P.a_theta2, P.a_theta3, P.a_V1, P.a_V2]...
     = compute_tf_model(x_trim,u_trim,P);
 
 % linearize the equations of motion around trim conditions
@@ -134,10 +133,24 @@ P.r0     = x_trim(12);  % initial body frame yaw rate
 
 %
 P.delta_a_max = 45*pi/180;
-P.e_phi_max = 15*pi/180;
+P.e_phi_max = 30*pi/180;
+
+P.delta_e_max = 45*pi/180;
+P.e_theta_max = 30*pi/180;
 P.Va_nominal = 10;
 P.W_chi = 5;
-P.Zeta_chi = 0;
-P.Zeta_phi = 0;
-P.altitude_take_off_zone = 0;
-P.altitude_hold_zone = 0;
+P.W_h = 5;
+P.W_V2 = 2;
+
+P.Zeta_phi = 2;
+P.Zeta_chi = .01;
+P.Zeta_theta = .1;
+P.Zeta_V = .3;
+P.Zeta_h = .1;
+
+P.omega_n_v = .3;
+
+P.altitude_take_off_zone = 20;
+P.altitude_hold_zone = 5;
+
+P.K_theta_DC = 0;

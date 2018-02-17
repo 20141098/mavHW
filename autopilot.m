@@ -36,7 +36,7 @@ function y = autopilot(uu,P)
     NN = NN+3;
     t        = uu(1+NN);   % time
     
-    autopilot_version = 2;
+    autopilot_version = 1;
         % autopilot_version == 1 <- used for tuning
         % autopilot_version == 2 <- standard autopilot defined in book
         % autopilot_version == 3 <- Total Energy Control for longitudinal AP
@@ -64,7 +64,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [delta, x_command] = autopilot_tuning(Va_c,h_c,chi_c,Va,h,chi,phi,theta,p,q,r,t,P)
 
-    mode = 5;
+    mode = 3;
     switch mode
         case 1, % tune the roll loop
             phi_c = chi_c; % interpret chi_c to autopilot as course command
@@ -162,7 +162,7 @@ function [delta, x_command] = autopilot_uavbook(Va_c,h_c,chi_c,Va,h,chi,phi,thet
 
     %----------------------------------------------------------
     % lateral autopilot
-    if t==0,
+    if t==0
         % assume no rudder, therefore set delta_r=0
         delta_r = 0;%coordinated_turn_hold(beta, 1, P);
         phi_c   = course_hold(chi_c, chi, r, 1, P);
@@ -181,12 +181,12 @@ function [delta, x_command] = autopilot_uavbook(Va_c,h_c,chi_c,Va,h,chi,phi,thet
     persistent altitude_state;
     persistent initialize_integrator;
     % initialize persistent variable
-    if t==0,
-        if h<=P.altitude_take_off_zone,     
+    if t==0
+        if h<=P.altitude_take_off_zone   
             altitude_state = 1;
-        elseif h<=h_c-P.altitude_hold_zone, 
+        elseif h<=h_c-P.altitude_hold_zone
             altitude_state = 2;
-        elseif h>=h_c+P.altitude_hold_zone, 
+        elseif h>=h_c+P.altitude_hold_zone
             altitude_state = 3;
         else
             altitude_state = 4;
@@ -195,23 +195,30 @@ function [delta, x_command] = autopilot_uavbook(Va_c,h_c,chi_c,Va,h,chi,phi,thet
     end
     
     % implement state machine
-    switch altitude_state,
-        case 1,  % in take-off zone
-            theta_c = 30*pi/180;
+    switch altitude_state
+        case 1  % in take-off zone
+            theta_c = 0;%30*pi/180;
             delta_t = 1;
-        case 2,  % climb zone
-            theta_c = 15*pi/180;
+        case 2  % climb zone
+            theta_c = 0;%attitude_hold_with_pitch(h_c, h, P);
             delta_t = 1;
-             
-        case 3, % descend zone
-            theta_c = -15*pi/180;
+        case 3 % descend zone
+            theta_c = 0;%attitude_hold_with_pitch(h_c, h, P);
             delta_t = 0;
-
-        case 4, % altitude hold zone
+        case 4 % altitude hold zone
             delta_t = .5;
-            theta_c = 0;
+            theta_c = 0;%attitude_hold_with_pitch(h_c, h, P);
     end
     
+    if h > P.altitude_take_off_zone || altitude_state ~= 1
+        if h <= h_c-P.altitude_hold_zone
+            altitude_state = 2;
+        elseif h >= h_c+P.altitude_hold_zone
+            altitude_state = 3;
+        else
+            altitude_state = 4;
+        end
+    end
     delta_e = pitch_hold(theta_c, theta, q, P);
     % artificially saturation delta_t
     delta_t = sat(delta_t,1,0);
@@ -305,9 +312,93 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+function [delta_a] = roll_hold(phi_c, phi, p, P)
+    %Do we recalculate a_phi1, a_phi2 or can we use the values calculated in
+    %compute_tf_model
+    %This one is bad, K_d_phi and K_i_phi cause errors
+%     Zeta_phi = 2;
+    
+    K_p_phi = P.delta_a_max*sign(P.a_phi2)/P.e_phi_max;
 
+    omega_n_phi = (abs(P.a_phi2)*P.delta_a_max/P.e_phi_max)^.5;
 
+    K_d_phi = (2*P.Zeta_phi*omega_n_phi - P.a_phi1)/P.a_phi2;
+
+%     K_i_phi = -1 * (s*(s^2+(P.a_phi1 + P.a_phi2+K_d_phi)*s + P.a_phi2*K_p_phi))/P.a_phi2;
+
+    delta_a = K_p_phi*(phi_c-phi) - K_d_phi*p;
+end
+
+function [delta_e] = pitch_hold(theta_c, theta, q, P)
+
+    K_p_theta = P.delta_e_max*sign(P.a_theta3)/P.e_theta_max;
+    P.K_theta_DC = K_p_theta*P.a_theta3/(P.a_theta2 + K_p_theta*P.a_theta3);
+
+    w_n_theta = (P.a_theta2 + P.delta_e_max*abs(P.a_theta3)/P.e_theta_max)^.5;
+
+    K_d_theta = (2*P.Zeta_theta*w_n_theta-P.a_theta1)/P.a_theta3;
+    delta_e = K_p_theta*(theta_c - theta) - K_d_theta*q;
+end
+
+function [phi_c] = course_hold(chi_c, chi, r, flag, P)
+    persistent i_error;
+    if flag == 1
+        i_error = 0;
+    end
+    omega_n_phi = (abs(P.a_phi2)*P.delta_a_max/P.e_phi_max)^.5;
+    omega_n_chi = omega_n_phi/P.W_chi;
+    Vg          = P.Va_nominal;
+    i_error = i_error + (chi_c - chi);
+    K_p_chi     = 2*P.Zeta_chi*omega_n_chi*Vg/P.gravity;
+
+    K_i_chi     = omega_n_chi^2*Vg/P.gravity;
+
+    phi_c       = K_p_chi*(chi_c - chi) + K_i_chi*(i_error);
+end
+
+function [delta_t] = airspeed_with_throttle_hold(Va_c, Va, flag, P)
+    persistent i_error;
+    if flag == 1
+        i_error = 0;
+    end
+    i_error = i_error + (Va_c - Va);
+    K_p_v = (2*P.Zeta_V*P.omega_n_v - P.a_V1)/P.a_V2;
+
+    K_i_v = P.omega_n_v^2/P.a_V2;
+
+%     delta_t_trim = P.x_trim(4);
+
+    delta_t = K_p_v*(Va_c - Va) + K_i_v*i_error;
+end
   
+function [theta_c] = airspeed_with_pitch_hold(Va_c, Va, flag, P)
+    persistent i_error;
+    if flag == 1
+        i_error = 0;
+    end
+    w_n_theta = (P.a_theta2 + P.delta_e_max*abs(P.a_theta3)/P.e_theta_max)^.5;
+    w_n_V2 = w_n_theta/P.W_V2;
+    
+    K_i_V2 = -w_n_v2^2/(K_theta_DC*g);
+    
+    K_p_V2 = (P.a_V1 - 2*P.Zeta_V2*w_n_V2)/(K_theta_DC*g);
+    
+    theta_c = K_p_V2*(Va_c - Va) + K_i_V2*i_error;
+end
+function [theta_c] = altitude_hold(h_c, h, P)
+    Va_trim    = norm(P.x_trim(4:6));
+    s           = P.S_wing;
+%     a_theta1   = -P.rho*Va_trim^2*P.c*P.S_wing*P.C_m_q*P.c/(4*P.Jy*Va_trim);
+    a_theta2   = -P.rho*Va_trim^2*P.c*P.S_wing*P.C_m_alpha/(2*P.Jy);
+    a_theta3   = P.rho*Va_trim^2*P.c*P.S_wing*P.C_m_delta_e/(2*P.Jy);
+    w_n_theta = (a_theta2 + P.delta_e_max*abs(a_theta3)/P.e_theta_max)^.5;
+    w_n_h = w_n_theta/P.W_h;
+    
+    K_i_h = w_n_h^2/(P.K_theta_DC*Va_trim);
+    K_p_h = 2*P.Zeta_h*w_n_h/(P.K_theta_DC * Va_trim);
+
+    theta_c = K_p_h*(h_c - h) + K_i_h*(h_c - h)/s;
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % sat
 %   - saturation function
