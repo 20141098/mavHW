@@ -107,6 +107,7 @@ P.Gamma8 = P.Jx/P.Gamma;%
 [x_trim, u_trim]=compute_trim('mavsim_trim',P.Va0,gamma,R);
 P.u_trim = u_trim;
 P.x_trim = x_trim;
+Va_trim = norm(x_trim(4:6));
 
 % set initial conditions to trim conditions
 % initial conditions
@@ -133,34 +134,65 @@ P.r0     = x_trim(12);  % initial body frame yaw rate
 
 %
 P.delta_a_max = 45*pi/180;
-P.e_phi_max = 30*pi/180;
-P.Zeta_phi = 2;
+P.e_phi_max = 60*pi/180;
+P.Zeta_phi =1;
 
 P.delta_e_max = 45*pi/180;
 P.e_theta_max = 30*pi/180;
-P.Zeta_theta = .2;
+P.Zeta_theta = .7;
 
 
 P.Va_nominal = 10;
 
-P.W_chi = 30;
-P.Zeta_chi = 10;
 
 
-P.Zeta_h = 1;
-P.W_h = 15;
 
 P.Zeta_V = 4;
 P.omega_n_v = .2;
 
-P.Zeta_V2 = .1;
-P.W_V2 = .1;
 
 P.delta_r_max = 45*pi/180;
 P.e_beta_max = 10;
 P.Zeta_beta = 1
 
 P.altitude_take_off_zone = 20;
-P.altitude_hold_zone = 5;
+P.altitude_hold_zone = 15;
 
-P.K_theta_DC = 5;
+
+
+%gains
+
+P.K_p_theta = P.delta_e_max*sign(P.a_theta3)/P.e_theta_max;
+K_theta_DC = P.K_p_theta*P.a_theta3/(P.a_theta2 + P.K_p_theta*P.a_theta3);
+
+w_n_theta = (P.a_theta2 + P.delta_e_max*abs(P.a_theta3)/P.e_theta_max)^.5;
+
+P.K_d_theta = (2*P.Zeta_theta*w_n_theta-P.a_theta1)/P.a_theta3;
+
+
+P.K_p_v = (2*P.Zeta_V*P.omega_n_v - P.a_V1)/P.a_V2;
+
+P.K_i_v = P.omega_n_v^2/P.a_V2;
+
+
+P.W_chi = 20;
+P.Zeta_chi = 1;
+omega_n_phi = (abs(P.a_phi2)*P.delta_a_max/P.e_phi_max)^.5;
+omega_n_chi = omega_n_phi/P.W_chi;
+P.K_p_chi     = 2*P.Zeta_chi*omega_n_chi*Va_trim/P.gravity;
+P.K_i_chi     = omega_n_chi^2*Va_trim/P.gravity;
+
+P.Zeta_V2 = .1;
+P.W_V2 = 10;
+w_n_V2 = w_n_theta/P.W_V2;
+
+P.K_i_V2 = -w_n_V2^2/(K_theta_DC*P.gravity);
+
+P.K_p_V2 = (P.a_V1 - 2*P.Zeta_V2*w_n_V2)/(K_theta_DC*P.gravity);
+
+P.Zeta_h = 5;
+P.W_h = 15;
+
+w_n_h = w_n_theta/P.W_h;
+P.K_i_h = w_n_h^2/(K_theta_DC*Va_trim);
+P.K_p_h = 2*P.Zeta_h*w_n_h/(P.K_theta_DC * Va_trim);

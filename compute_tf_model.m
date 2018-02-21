@@ -19,7 +19,7 @@ Cpp = P.Gamma3*P.C_ell_p+P.Gamma4*P.C_n_p;
 Cpda=P.Gamma3*P.C_ell_delta_a+P.Gamma4*P.C_n_delta_a;
 %
 Va_trim    = norm(x_trim(4:6)); % norm of xtrim[4-6]
-a_phi1     = -.5*P.rho*Va_trim^2*P.b*P.S_wing*P.b^2*Cpp/(2*Va_trim);
+a_phi1     = -.5*P.rho*Va_trim^2*P.b*P.S_wing*P.b*Cpp/(2*Va_trim);
 a_phi2     = .5*P.rho*Va_trim^2*P.S_wing*P.b*Cpda;
 a_theta1   = -P.rho*Va_trim^2*P.c*P.S_wing*P.C_m_q*P.c/(4*P.Jy*Va_trim);
 a_theta2   = -P.rho*Va_trim^2*P.c*P.S_wing*P.C_m_alpha/(2*P.Jy);
