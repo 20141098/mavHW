@@ -202,6 +202,7 @@ P.K_p_h = 2*P.Zeta_h*w_n_h/(K_theta_DC * Va_trim);
 
 %Sensors
 P.Ts_gps = 1;
+P.sigma_accel = .0025*P.gravity;
 
 %chap 8
 P.bias_gyro_x = 0;

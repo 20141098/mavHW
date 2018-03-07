@@ -40,10 +40,10 @@ function y = sensors(uu, P)
     y_gyro_z = r + sqrt(sigma_gyro)*randn();
 
     % simulate accelerometers (units of g)
-    sigma_accel = .0025*P.gravity;
-    y_accel_x = F_x/P.mass + P.gravity*sin(theta) + sqrt(sigma_accel)*randn();
-    y_accel_y = F_y/P.mass - P.gravity*cos(theta)*sin(phi) + sqrt(sigma_accel)*randn();
-    y_accel_z = F_z/P.mass - P.gravity*cos(theta)*cos(phi) + sqrt(sigma_accel)*randn();
+    
+    y_accel_x = F_x/P.mass + P.gravity*sin(theta);% + sqrt(P.sigma_accel)*randn();
+    y_accel_y = F_y/P.mass - P.gravity*cos(theta)*sin(phi);% + sqrt(P.sigma_accel)*randn();
+    y_accel_z = F_z/P.mass - P.gravity*cos(theta)*cos(phi);% + sqrt(P.sigma_accel)*randn();
 
     % simulate pressure sensors
     beta_abs_pres = .125;

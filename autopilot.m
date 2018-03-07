@@ -326,7 +326,7 @@ function [delta_a] = roll_hold(phi_c, phi, p, P)
     K_d_phi = (2*P.Zeta_phi*omega_n_phi - P.a_phi1)/P.a_phi2;
     
     delta_a = K_p_phi*(phi_c-phi) - K_d_phi*p;
-    delta_a = sat(delta_a, 45*pi/180, -45*pi/180);
+    delta_a = sat(delta_a, 15*pi/180, -15*pi/180);
 end
 %good but needs tuning
 function [phi_c] = course_hold(chi_c, chi, r, flag, P)
@@ -352,7 +352,7 @@ function [delta_e] = pitch_hold(theta_c, theta, q, P)
 %     theta_c = sat(theta_c, 50*pi/180, -50*pi/180);
     
     delta_e = P.K_p_theta*(theta_c - theta) - P.K_d_theta*q;
-    delta_e = sat(delta_e, 45*pi/180, -45*pi/180);
+    delta_e = sat(delta_e, 15*pi/180, -15*pi/180);
 end
 
 function [delta_r] = sideslip_hold(beta, t, P)

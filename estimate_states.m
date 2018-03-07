@@ -42,7 +42,7 @@ function xhat = estimate_states(uu, P)
    y_gps_Vg      = uu(12);
    y_gps_course  = uu(13);
    t             = uu(14);
-   persistent phat qhat rhat static_pres_hat diff_pres_hat pnhat pehat accel_x accel_y accel_z chihat Vghat;
+   persistent phat qhat rhat static_pres_hat diff_pres_hat pnhat pehat accel_x accel_y accel_z chihat Vghat phihat thetahat;
    if isempty(phat)
        phat = P.p0;
        qhat = P.q0;
@@ -56,6 +56,8 @@ function xhat = estimate_states(uu, P)
        accel_z = y_accel_z;
        chihat = 0;
        Vghat = 0;
+       phihat = P.phi0;
+       thetahat = P.theta0;
    end
    a_lpf_p = 0.9;%good
    a_lpf_q = 0.9;%decent
@@ -83,10 +85,13 @@ function xhat = estimate_states(uu, P)
    accel_x = LPF(accel_x, y_accel_x, a_lpf_accelx);
    accel_y = LPF(accel_y, y_accel_y, a_lpf_accely);
    accel_z = LPF(accel_z, y_accel_z, a_lpf_accelz);
+   accel = [accel_x;accel_y;accel_z];
    
 %    phihat = atan(accel_y/accel_z);
 %    thetahat = asin(accel_x/P.gravity);
-   phihat, thetahat = kalman(phihat, thetahat, p, q, r, Va, 0, 0);
+   anglehat = kalman(phihat, thetahat, accel, phat, qhat, rhat, Vahat, 0, 0, P);
+   phihat = anglehat(1);
+   thetahat = anglehat(2);
    
    pnhat = LPF(pnhat, y_gps_n, a_lpf_n);
    pehat = LPF(pehat, y_gps_e, a_lpf_e);
@@ -99,8 +104,8 @@ function xhat = estimate_states(uu, P)
 %    Vahat = 0;
 %    phihat = 0;
 %    thetahat = 0;
-   chihat = 0;
-   Vghat = 0;
+%    chihat = 0;
+%    Vghat = 0;
    wnhat = 0;
    wehat = 0;
    psihat = 0;
@@ -140,37 +145,69 @@ function [hat] = LPF(old, u, alpha)
     hat = alpha * old + (1-alpha) * u;
 end
 
-function [phi, theta] = kalman(phi, theta, p,q,r,Va,zeta_phi,zeta_theta)
+function [xhat] = kalman(phi, theta, accel, p,q,r,Va,zeta_phi,zeta_theta, P)
     
     u= [p;q;r;Va];
     zeta = [zeta_phi;zeta_theta];
-    eta = [eta_phi; eta_theta];
+%     eta = [eta_phi; eta_theta];
     xhat = [phi;theta];
+    persistent COV
+    Q =[.00000001, 0; 0, .00000001];
+    if isempty(COV)
+        COV = [1,0;0,1];
+    end
+    %model propogation
+    N = 100
     for i = 1:N
-%         phi_dot = (p + q*sin(phi)*tan(theta) + r * cos(phi)*tan(theta)) + zeta_phi;
-%         theta_dot = (q*cos(phi) - r*sin(phi)) + zeta_theta;
-        x_dot = [(p + q*sin(phi)*tan(theta) + r * cos(phi)*tan(theta)) + zeta_phi;
-            (q*cos(phi) - r*sin(phi)) + zeta_theta];
-%         phi = phi + phi_dot * P.Ts;
-%         theta = theta + theta_dot * P.Ts;
-        xhat = xhat + P.Ts.*x_dot; %[phi_dot; theta_dot];
+        x_dot = [(p + q*sin(phi)*tan(theta) + r*cos(phi)*tan(theta));
+            (q*cos(phi) - r*sin(phi))] + zeta;
+        xhat = xhat + (P.Ts/N).*x_dot; % model propogation
+%         phi = xhat(1);
+%         theta = xhat(2);
+        
+        A = [q*cos(phi)*tan(theta) - r*sin(phi)*tan(theta),     (q*sin(phi)+r*cos(phi))/cos(theta)^2;
+            -q*sin(phi)-r*cos(phi),                             0]; %corrected
+        COV = COV + (P.Ts/N)*(A*COV + COV*A' + Q);
+    end
+    % measurement correction
+    if norm(accel) > .8*P.gravity && norm(accel) < 1.2*P.gravity
         phi = xhat(1);
         theta = xhat(2);
-        
-        A = [q*cos(phi)*tan(theta) - r*sin(phi)*tan(theta), q*sin(phi)-r*cos(phi)/cos(theta)^2;
-            -q*sin(phi)-r*cos(phi), 0];
-        P = P + P.Ts*(A*P + P*A' + Q);
+        Ci = [0,                            q*Va*cos(theta) + P.gravity*cos(theta);
+            -P.gravity*cos(phi)*cos(theta), -r*Va*sin(theta)-p*Va*cos(theta)+P.gravity*sin(phi)*sin(theta);
+            P.gravity*sin(phi)*cos(theta),  (q*Va + P.gravity*cos(phi))*sin(theta)]; %checked
+        Ri = [P.sigma_accel^2,0,0;
+            0,P.sigma_accel^2,0;
+            0,0,P.sigma_accel^2];
+%         Ri = [0,0,0;0,0,0;0,0,0];
+        Li = COV*Ci' / (Ri + Ci*COV*Ci');
+        COV = (1-Li*Ci)*COV;
+        H = [q*Va*sin(theta) + P.gravity*sin(theta);
+            r*Va*cos(theta) - p*Va*sin(theta) - P.gravity*cos(theta)*sin(phi);
+            -q*Va*cos(theta)-P.gravity*cos(theta)*cos(phi)];
+        reminder = accel - H;
+        reminder(1) = sat(reminder(1),.01,-.01);
+        reminder(2) = sat(reminder(2),.01,-.01);
+        xhat = xhat + Li*(reminder);
     end
-    Ci = [0,                            q*Va*cos(theta) + P.gravity*cos(theta);
-        -P.gravity*cos(phi)*cos(theta), -r*Va*sin(theta)-p*Va*cos(theta)+P.gravity*sin(phi)*sin(theta);
-        P.gravity*sin(phi)*cos(theta),  (q*Va + P.gravity*cos(phi))*sin(theta)];
-    Li = P*Ci' / (Ri + Ci*P*Ci');
-    P = (1-Li*Ci)*P;
-    H = [q*Va*sin(theta) + P.gravity*sin(theta);
-        r*Va*cos(theta) - p*Va*sin(theta) - P.gravity*cos(theta)*sin(phi);
-        -q*Va*cos(theta)-P.gravity*cos(theta)*cos(phi)];
-    xhat = xhat + Li*(yi - H);
-    
-    phi = xhat(1);
-    theta = xhat(2);
+    xhat(1) = wrapAngle(xhat(1));
+    xhat(2) = wrapAngle(xhat(2));
+end
+
+function [val] = sat(val, max, min)
+    if val > max
+        val = max
+    end
+    if val < min
+        val = min
+    end
+end
+
+function [angle] = wrapAngle(angle)
+    while(angle > pi)
+        angle = angle - 2 * pi;
+    end
+    while(angle < -pi)
+        angle = angle + 2*pi;
+    end
 end
