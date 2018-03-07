@@ -129,7 +129,7 @@ function plotextramavstatevariables(uu,P)
 % graph y with lable mylabel
 function handle = graph_y(t, y, handle, color)
   
-  if isempty(handle),
+  if isempty(handle)
     handle    = plot(t,y,color);
   else
     set(handle,'Xdata',[get(handle,'Xdata'),t]);

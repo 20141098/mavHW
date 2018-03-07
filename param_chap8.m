@@ -123,6 +123,7 @@ P.psi0   = x_trim(9);  % initial yaw angle
 P.p0     = x_trim(10);  % initial body frame roll rate
 P.q0     = x_trim(11);  % initial body frame pitch rate
 P.r0     = x_trim(12);  % initial body frame yaw rate
+P.Va0    = norm(x_trim(4:6)); % initial airspeed
 % compute different transfer functions
 [T_phi_delta_a,T_chi_phi,T_theta_delta_e,T_h_theta,T_h_Va,T_Va_delta_t,T_Va_theta,T_v_delta_r, P.a_phi1, P.a_phi2, P.a_theta1, P.a_theta2, P.a_theta3, P.a_V1, P.a_V2, P.a_beta1, P.a_beta2]...
     = compute_tf_model(x_trim,u_trim,P);
@@ -201,3 +202,8 @@ P.K_p_h = 2*P.Zeta_h*w_n_h/(K_theta_DC * Va_trim);
 
 %Sensors
 P.Ts_gps = 1;
+
+%chap 8
+P.bias_gyro_x = 0;
+P.bias_gyro_y = 0;
+P.bias_gyro_z = 0;
