@@ -204,7 +204,7 @@ P.r0     = x_trim(12);  % initial body frame yaw rate
    P.altitude_ki = wn_altitude^2/P.K_theta_DC/P.Va0;
 %   P.altitude_kp = 0.0114;
 %   P.altitude_ki = 0.0039;
-   P.altitude_kd = 0;%-.001;
+   P.altitude_kd = 0-.005;
  
 % airspeed hold using pitch
    [num,den]=tfdata(T_Va_theta,'v');
@@ -218,7 +218,7 @@ P.r0     = x_trim(12);  % initial body frame yaw rate
    [num,den]=tfdata(T_Va_delta_t,'v');
    a_Vt1 = den(2);
    a_Vt2 = num(2);
-   zeta_airspeed_throttle = 2;%0.707;
+   zeta_airspeed_throttle = .7;%0.707;
 %    wn_airspeed_throttle = 5;   % a value of 5 causes instability...
    wn_airspeed_throttle = 3;
    P.airspeed_throttle_kp = (2*zeta_airspeed_throttle*wn_airspeed_throttle-a_Vt1)/a_Vt2;

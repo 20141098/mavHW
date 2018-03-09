@@ -43,55 +43,33 @@ function xhat = estimate_states(uu, P)
    y_gps_course  = uu(13);
    t             = uu(14);
    persistent phat qhat rhat static_pres_hat diff_pres_hat pnhat pehat;
-   persistent accel_x accel_y accel_z chihat Vghat phihat thetahat psihat wnhat wehat;
-   if t == 0 %isempty(phat)
-       phat = P.p0;
-       qhat = P.q0;
-       rhat = P.r0;
+   persistent chihat Vghat phihat thetahat psihat;
+   if t == 0
        static_pres_hat = P.pd0 * P.rho * P.gravity;
        diff_pres_hat = P.Va0^2 * P.rho / 2;
        pnhat = P.pn0;
        pehat = P.pe0;
-       accel_x = 0;
-       accel_y = 0;
-       accel_z = y_accel_z;
        chihat = 0;
        Vghat = norm(P.x_trim(4:6));
        phihat = P.phi0;
        thetahat = P.theta0;
        psihat = P.psi0;
-       wnhat = 0;
-       wehat = 0;
    end
    a_lpf_p = 0.9;%good
    a_lpf_q = 0.9;%decent
    a_lpf_r = 0.9;%good
    a_lpf_sp = 0.1;%good
    a_lpf_dp = .1;%good
-   a_lpf_accelx = .1;%bad
-   a_lpf_accely = .1;%bad
-   a_lpf_accelz = .1;%bad
-   a_lpf_n = .8;%good
-   a_lpf_e = .1;%good
-   a_lpf_chi = .9;%bad
-   a_lpf_Vg = .1; %bad
    phat = y_gyro_x;
    qhat = y_gyro_y;
    rhat = y_gyro_z;
    
    static_pres_hat = LPF(static_pres_hat, y_static_pres, a_lpf_sp);
    hhat = static_pres_hat / (P.rho * P.gravity);
-   
-   
-%    accel_x = LPF(accel_x, y_accel_x, a_lpf_accelx);
-%    accel_y = LPF(accel_y, y_accel_y, a_lpf_accely);
-%    accel_z = LPF(accel_z, y_accel_z, a_lpf_accelz);
+
    accel = [y_accel_x;y_accel_y;y_accel_z];
    Vahat = y_diff_pres/P.rho;
    
-%    phihat = atan(accel_y/accel_z);
-%    thetahat = asin(accel_x/P.gravity);
-
    phat = LPF(phat, y_gyro_x, a_lpf_p);
    qhat = LPF(qhat, y_gyro_y, a_lpf_q);
    rhat = LPF(rhat, y_gyro_z, a_lpf_r);
