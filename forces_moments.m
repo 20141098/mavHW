@@ -9,6 +9,9 @@
 %       beta  - sideslip angle
 %       wind  - wind vector in the inertial frame
 %
+%  Revised:
+%   2/2/2010 - RB 
+%   5/14/2010 - RB
 
 function out = forces_moments(x, delta, wind, P)
 
@@ -25,110 +28,116 @@ function out = forces_moments(x, delta, wind, P)
     p       = x(10);
     q       = x(11);
     r       = x(12);
-    
     delta_e = delta(1);
     delta_a = delta(2);
     delta_r = delta(3);
     delta_t = delta(4);
-    
     w_ns    = wind(1); % steady wind - North
     w_es    = wind(2); % steady wind - East
     w_ds    = wind(3); % steady wind - Down
     u_wg    = wind(4); % gust along body x-axis
     v_wg    = wind(5); % gust along body y-axis    
     w_wg    = wind(6); % gust along body z-axis
-%     w_ns = 0;
-%     w_es = 0;
-%     w_ds = 0;
-%     u_wg = 0;
-%     v_wg = 0;
-%     w_wg = 0;
     
-    % compute wind data in NED
-    Rb2i =[cos(theta)*cos(psi),     sin(phi)*sin(theta)*cos(psi)-cos(phi)*sin(psi),     cos(phi)*sin(theta)*cos(psi)+sin(phi)*sin(psi);
-        cos(theta)*sin(psi),        sin(phi)*sin(theta)*sin(psi)+cos(phi)*cos(psi),     cos(phi)*sin(theta)*sin(psi)-sin(phi)*cos(psi);
-        -sin(theta),                sin(phi)*cos(theta),                                cos(phi)*cos(theta)];
-    wind = Rb2i*[u_wg;v_wg;w_wg];
-    w_n = w_ns + wind(1);
-    w_e = w_es + wind(2);
-    w_d = w_ds + wind(3);
+    % convert steady inertial frame wind to the body frame
+    % rotation from inertial frame to body frame
+    R = [...
+        1, 0, 0;...
+        0, cos(phi), sin(phi);...
+        0, -sin(phi), cos(phi)]*...
+        [...
+        cos(theta), 0, -sin(theta);...
+        0, 1, 0;...
+        sin(theta), 0, cos(theta)]*...
+        [...
+        cos(psi), sin(psi), 0;...
+        -sin(psi), cos(psi), 0;...
+        0, 0, 1];
+    % compute wind vector in the body frame
+    u_w = u_wg + R(1,:)*[w_ns; w_es; w_ds];
+    v_w = v_wg + R(2,:)*[w_ns; w_es; w_ds];
+    w_w = w_wg + R(3,:)*[w_ns; w_es; w_ds];
+    % compute wind vector in the inertial frame
+    w_n = w_ns + R(:,1)'*[u_wg; v_wg; w_wg];
+    w_e = w_es + R(:,2)'*[u_wg; v_wg; w_wg];
+    w_d = w_ds + R(:,3)'*[u_wg; v_wg; w_wg];
     
-    velocity = Rb2i'*[w_n;w_e;w_d];
-    u_r = u - velocity(1);
-    v_r = v - velocity(2);
-    w_r = w - velocity(3);
+    % compute the velocity relative to the air mass
+    ur      = u-u_w;
+    vr      = v-v_w;
+    wr      = w-w_w;
     
-    % compute air data
-    Va = sqrt(u_r^2 + v_r^2 + w_r^2);
-    alpha = atan(w_r/u_r);
-    beta = asin(v_r/Va);
-    
-    % compute external forces and torques on aircraft
-    C_L_alpha = P.C_L_0 + P.C_L_alpha*alpha;
-    C_D_alpha = P.C_D_0 + P.C_D_alpha*alpha;
-    C_X_alpha = -C_D_alpha*cos(alpha) + C_L_alpha*sin(alpha);
-    C_X_q = -P.C_D_q*cos(alpha)+P.C_L_q*sin(alpha);
-    C_X_de = -P.C_D_delta_e*cos(alpha) + P.C_L_delta_e*sin(alpha);
-    C_Z_alpha = -C_D_alpha*sin(alpha)-C_L_alpha*cos(alpha);
-    C_Z_q = -P.C_D_q*sin(alpha)-P.C_L_q*cos(alpha);
-    C_Z_de = -P.C_D_delta_e*sin(alpha)-P.C_L_delta_e*cos(alpha);
-    
-    Force = [
-        -P.mass*P.gravity*sin(theta);...
-        P.mass*P.gravity*cos(theta)*sin(phi);...
-        P.mass*P.gravity*cos(theta)*cos(phi)]...
-     + .5*P.rho*Va^2*P.S_wing*[...
-        C_X_alpha + C_X_q*P.c*q/(2*Va) + C_X_de;
-        P.C_Y_0 + P.C_Y_beta*beta + P.C_Y_p*P.b*p/(2*Va) + P.C_Y_r*P.b*r/(2*Va)+P.C_Y_delta_a*delta_a+P.C_Y_delta_r*delta_r;
-        C_Z_alpha + C_Z_q*P.c*q/(2*Va) + C_Z_de*delta_e]...
-     + .5*P.rho*P.S_prop*P.C_prop*[...
-        (P.k_motor*delta_t)^2-Va^2;
-        0;
-        0];
-    Force = Force';
-        
-    torque = .5*P.rho*Va^2*P.S_wing*[...
-        P.b*(P.C_ell_0+P.C_ell_beta*beta+P.C_ell_p*P.b*p/(2*Va)+P.C_ell_r*P.b*r/(2*Va)+P.C_ell_delta_a*delta_a+P.C_ell_delta_r*delta_r);
-        P.c*(P.C_m_0 + P.C_m_alpha*alpha+P.C_m_q*P.c*q/(2*Va)+P.C_m_delta_e*delta_e);
-        P.b*(P.C_n_0 + P.C_n_beta*beta+P.C_n_p*P.b*p/(2*Va)+P.C_n_r*P.b*r/(2*Va)+P.C_n_delta_a*delta_a+P.C_n_delta_r*delta_r)]...
-        + [P.k_T_P*(P.k_Omega*delta_t)^2;0;0];
-    Torque = torque';
-%     Force(1) =  ...
-%     -P.mass*P.gravity*sin(theta)...
-%         + .5*P.rho*Va^2*P.S_wing*(C_X + C_X_q * P.c*q/(2*Va) + C_X_de*delta_e)... 
-%         + .5*P.rho*P.S_prop*P.C_prop*((P.k_motor*delta_t)^2 - Va^2);%
-%     Force(2) =  ...
-%         P.mass*P.gravity*cos(theta)*sin(phi)...
-%         + .5*P.rho*Va^2*P.S_wing*(P.C_Y_0 + P.C_Y_beta*beta + P.C_Y_p*P.b*p/(2*Va) + P.C_Y_r*P.b*r/(2*Va) + P.C_Y_delta_a*delta_a + P.C_Y_delta_r*delta_r);%
-%     Force(3) = ...
-%         P.mass*P.gravity*cos(theta)*cos(phi)...
-%         + .5*P.rho*Va^2*P.S_wing*(C_Z + C_Z_q*P.c*q/(2*Va) + C_Z_de*delta_e);%
-    
-%     Torque(1) = .5*P.rho*Va^2*P.S_wing*P.b...
-%                 *(P.C_ell_0+P.C_ell_beta*beta...
-%                   +P.C_ell_p*P.b*p/(2*Va)...
-%                   +P.C_ell_r*P.b*r/(2*Va)...
-%                   +P.C_ell_delta_a*delta_a ...
-%                   + P.C_ell_delta_r*delta_r) ...
-%                 - P.k_T_P*(P.k_Omega*delta_t)^2;%
-%     %
-%     Torque(2) = .5*P.rho*Va^2*P.S_wing*P.c...
-%                 *(P.C_m_0 ...
-%                   + P.C_m_alpha*alpha ...
-%                   + P.C_m_q*P.c*q/(2*Va)...
-%                   + P.C_m_delta_e*delta_e);%
-%     Torque(3) = .5*P.rho*Va^2*P.S_wing*P.b...
-%                 *(P.C_n_0 ...
-%                   + P.C_n_beta*beta ...
-%                   + P.C_n_p*P.b*p/(2*Va) ...
-%                   + P.C_n_r*P.b*r/(2*Va)...
-%                   + P.C_n_delta_a*delta_a...
-%                   + P.C_n_delta_r*delta_r);%
+    % compute airspeed Va, angle-of-attack alpha, side-slip beta
+    Va    = sqrt(ur^2 + vr^2 + wr^2);
+    alpha = atan2(wr,ur);
+    beta  = atan2(vr,sqrt(ur^2+wr^2));
+    qbar = 0.5*P.rho*Va^2;
+    ca    = cos(alpha);
+    sa    = sin(alpha);
    
+    % compute gravitaional forces
+    Force(1) = -P.mass*P.gravity*sin(theta);
+    Force(2) =  P.mass*P.gravity*cos(theta)*sin(phi);
+    Force(3) =  P.mass*P.gravity*cos(theta)*cos(phi);
+    
+    % compute Lift and Drag forces
+    tmp1 = exp(-P.M*(alpha-P.alpha0));
+    tmp2 = exp(P.M*(alpha+P.alpha0));
+    sigma = (1+tmp1+tmp2)/((1+tmp1)*(1+tmp2));
+    CL = (1-sigma)*(P.C_L_0+P.C_L_alpha*alpha);
+    AR = 2;
+    e = .9;
+    CD = P.C_D_0 + 1/pi/e/AR*(P.C_L_0+P.C_L_alpha*alpha)^2;
+    if alpha>=0, 
+        CL = CL + sigma*2*sa*sa*ca;
+    else
+        CL = CL - sigma*2*sa*sa*ca;
+    end
+    
+    % compute aerodynamic forces
+    Force(1) = Force(1) + qbar*P.S_wing*(-CD*ca + CL*sa);
+    Force(1) = Force(1) + qbar*P.S_wing*(-P.C_D_q*ca + P.C_L_q*sa)*P.c*q/(2*Va);
+    
+    Force(2) = Force(2) + qbar*P.S_wing*(P.C_Y_0 + P.C_Y_beta*beta);
+    Force(2) = Force(2) + qbar*P.S_wing*(P.C_Y_p*p + P.C_Y_r*r)*P.b/(2*Va);
+    
+    Force(3) = Force(3) + qbar*P.S_wing*(-CD*sa - CL*ca);
+    Force(3) = Force(3) + qbar*P.S_wing*(-P.C_D_q*sa - P.C_L_q*ca)*P.c*q/(2*Va);
+     
+    % compute aerodynamic torques
+    
+    Torque(1) = qbar*P.S_wing*P.b*(P.C_ell_0 + P.C_ell_beta*beta);
+    Torque(1) = Torque(1) + qbar*P.S_wing*P.b*(P.C_ell_p*p + P.C_ell_r*r)*P.b/(2*Va);
+
+    Torque(2) = qbar*P.S_wing*P.c*(P.C_m_0 + P.C_m_alpha*alpha);
+    Torque(2) = Torque(2) + qbar*P.S_wing*P.c*P.C_m_q*P.c*q/(2*Va);
+
+    
+    Torque(3) = qbar*P.S_wing*P.b*(P.C_n_0 + P.C_n_beta*beta);
+    Torque(3) = Torque(3) + qbar*P.S_wing*P.b*(P.C_n_p*p + P.C_n_r*r)*P.b/(2*Va);
+
+    % compute control forces
+    Force(1) = Force(1) + qbar*P.S_wing*(-P.C_D_delta_e*ca+P.C_L_delta_e*sa)*delta_e;
+    Force(2) = Force(2) + qbar*P.S_wing*(P.C_Y_delta_a*delta_a + P.C_Y_delta_r*delta_r);
+    Force(3) = Force(3) + qbar*P.S_wing*(-P.C_D_delta_e*sa-P.C_L_delta_e*ca)*delta_e;
+     
+    % compute control torques
+    Torque(1) = Torque(1) + qbar*P.S_wing*P.b*(P.C_ell_delta_a*delta_a + P.C_ell_delta_r*delta_r);
+    Torque(2) = Torque(2) + qbar*P.S_wing*P.c*P.C_m_delta_e*delta_e;
+    Torque(3) = Torque(3) + qbar*P.S_wing*P.b*(P.C_n_delta_a*delta_a + P.C_n_delta_r*delta_r);
+    
+    % compute propulsion forces
+%    motor_temp = (P.k_motor*delta_t+Va)^2-Va^2; % revised model from book
+    motor_temp = P.k_motor^2*delta_t^2-Va^2;
+%   motor_temp = ( Va + delta_t*(P.k_motor - Va) )^2 - Va^2;
+    Force(1) = Force(1) + 0.5*P.rho*P.S_prop*P.C_prop*motor_temp;
+%  new propeller model
+%    Force(1) = Force(1) + P.rho*P.S_prop*P.C_prop*(Va+delta_t*(P.k_motor-Va))*(delta_t*(P.k_motor-Va));
+    
+    
     out = [Force'; Torque'; Va; alpha; beta; w_n; w_e; w_d];
+    
 end
 
 
-% function [out] = C_D(a)
-%     out = P.C_D_p + (P.C_L_0 + P.C_L_alpha*a)^2/(PI*P.e*A*R)
-% end
+

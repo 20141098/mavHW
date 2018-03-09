@@ -28,30 +28,40 @@ function y = gps(uu, P)
 %    r       = uu(18);
     t       = uu(19);
     
-    persistent error_n error_e error_h;
-    if isempty(error_n)
-        error_n = 0;
-        error_e = 0;
-        error_h = 0;
-    end
-    % construct North, East, and altitude GPS measurements
-    y_gps_n = pn + error_n;
-    y_gps_e = pe + error_e; 
-    y_gps_h = -pd + error_h;
+    % persistent variables that define random walk of GPS sensors
+    persistent eta_n;
+    persistent eta_e;
+    persistent eta_h;
     
-    k_gps = 1/1100;
-    error_n = exp(-k_gps*P.Ts_gps)*error_n + .21*randn();
-    error_e = exp(-k_gps*P.Ts_gps)*error_e + .21*randn();
-    error_h = exp(-k_gps*P.Ts_gps)*error_h + .40*randn();
+    
+    if t==0,  % initialize persistent variables
+        eta_n = 0;
+        eta_e = 0;
+        eta_h = 0;
+    else      % propagate persistent variables
+        eta_n = exp(-P.beta_gps*P.Ts_gps)*eta_n + P.sigma_n_gps*randn;
+        eta_e = exp(-P.beta_gps*P.Ts_gps)*eta_e + P.sigma_e_gps*randn;
+        eta_h = exp(-P.beta_gps*P.Ts_gps)*eta_h + P.sigma_h_gps*randn;
+    end
+
+%    Set GPS error parameters to zero to test KF
+%         eta_n = 0;
+%         eta_e = 0;
+%         eta_h = 0;
+
+
+    % construct North, East, and altitude GPS measurements
+    y_gps_n = pn + eta_n;
+    y_gps_e = pe + eta_e; 
+    y_gps_h = -pd + eta_h; 
     
     % construct groundspeed and course measurements
-    Vn = Va*cos(psi)+wn;
-    Ve = Va*sin(psi)+we;
-    Vg = sqrt(Vn^2 + Ve^2);
-    sigma_vg = .025;
-    sigma_chi = sigma_vg/Vg;
-    y_gps_Vg     = sqrt((Va*cos(psi)+wn)^2 + (Va*sin(psi) + we)^2) + sqrt(sigma_vg)*randn();
-    y_gps_course = atan2(Va*sin(psi)+we, Va*cos(psi)+wn) + sqrt(sigma_chi)*randn();
+    VN = Va*cos(psi)+wn;
+    VE = Va*sin(psi)+we;
+    y_gps_Vg     = sqrt(VN^2 + VE^2) + P.sigma_Vg_gps*randn;
+    y_gps_course = atan2(VE, VN) + P.sigma_course_gps*randn;
+%     y_gps_Vg     = sqrt(VN^2 + VE^2); % to debug EKF
+%     y_gps_course = atan2(VE, VN); % to debug EKF
 
     % construct total output
     y = [...
