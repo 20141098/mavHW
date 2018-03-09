@@ -209,7 +209,8 @@ function [delta, x_command] = autopilot_uavbook(Va_c,h_c,chi_c,Va,h,chi,phi,thet
             theta_c = airspeed_with_pitch_hold(Va_c, Va, P);%altitude_hold(h_c, h, P);
             delta_t = 0;%airspeed_with_throttle_hold(Va_c, Va, 1, P);
         case 4 % altitude hold zone
-            delta_t = airspeed_with_throttle_hold(Va_c, Va, P);
+%             delta_t = airspeed_with_throttle_hold(Va_c, Va, P);
+            delta_t = .6;
             theta_c = altitude_hold(h_c, h, P)
     end
     
@@ -326,7 +327,7 @@ function [delta_a] = roll_hold(phi_c, phi, p, P)
     K_d_phi = (2*P.Zeta_phi*omega_n_phi - P.a_phi1)/P.a_phi2;
     
     delta_a = K_p_phi*(phi_c-phi) - K_d_phi*p;
-    delta_a = sat(delta_a, 15*pi/180, -15*pi/180);
+    delta_a = sat(delta_a, 45*pi/180, -45*pi/180);
 end
 %good but needs tuning
 function [phi_c] = course_hold(chi_c, chi, r, flag, P)
@@ -352,7 +353,7 @@ function [delta_e] = pitch_hold(theta_c, theta, q, P)
 %     theta_c = sat(theta_c, 50*pi/180, -50*pi/180);
     
     delta_e = P.K_p_theta*(theta_c - theta) - P.K_d_theta*q;
-    delta_e = sat(delta_e, 15*pi/180, -15*pi/180);
+    delta_e = sat(delta_e, 45*pi/180, -45*pi/180);
 end
 
 function [delta_r] = sideslip_hold(beta, t, P)
@@ -397,14 +398,24 @@ end
 function [theta_c] = altitude_hold(h_c, h, P)
     persistent i_error;
     persistent d_error;
+    persistent differentiator;
+    persistent integrator;
+    persistent error_dl;
+    K_d_h = .8;
     if isempty(i_error) == 1
         i_error = 0;
         d_error = 0;
+        differentiator = 0;
     end
-    i_error = i_error + (P.Ts/P.K_i_h) * ((h_c - h) + d_error);
-    d_error = h_c - h;
+    error = h_c - h;
+    d_error = error - d_error;
+%     if abs(error) > 2
+%         d_error = 0;
+%     end
+    
+    i_error = i_error + (h_c - h);
 
-    theta_c = P.K_p_h*(h_c - h);% + P.K_i_h*i_error;
+    theta_c = P.K_p_h*(h_c - h) - K_d_h*d_error + P.K_i_h*i_error - K_d_h*d_error;
     if P.K_i_h ~= 0
         i_error = i_error + (P.Ts/P.K_i_h) * (sat(theta_c, 30*pi/180, -30*pi/180) - theta_c);
     end

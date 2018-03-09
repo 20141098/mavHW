@@ -190,9 +190,14 @@ P.K_i_V2 = -w_n_V2^2/(K_theta_DC*P.gravity);
 
 P.K_p_V2 = (P.a_V1 - 2*P.Zeta_V2*w_n_V2)/(K_theta_DC*P.gravity);
 
-P.Zeta_h = 5;
+P.Zeta_h = 5;%3
 P.W_h = 15;
 
 w_n_h = w_n_theta/P.W_h;
 P.K_i_h = w_n_h^2/(K_theta_DC*Va_trim);
-P.K_p_h = 2*P.Zeta_h*w_n_h/(P.K_theta_DC * Va_trim);
+P.K_p_h = 2*P.Zeta_h*w_n_h/(K_theta_DC * Va_trim);
+
+
+
+%Sensors
+P.Ts_gps = 1;
