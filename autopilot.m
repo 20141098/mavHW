@@ -1,12 +1,12 @@
 function y = autopilot(uu,P)
 %
 % autopilot for mavsim
-% 
+%
 % Modification History:
 %   2/11/2010 - RWB
 %   5/14/2010 - RWB
 %   9/30/2014 - RWB
-%   
+%
 
     % process inputs
     NN = 0;
@@ -35,7 +35,7 @@ function y = autopilot(uu,P)
     chi_c    = uu(3+NN);  % commanded course (rad)
     NN = NN+3;
     t        = uu(1+NN);   % time
-    
+
     autopilot_version = 2;
         % autopilot_version == 1 <- used for tuning
         % autopilot_version == 2 <- standard autopilot defined in book
@@ -50,8 +50,8 @@ function y = autopilot(uu,P)
     end
     y = [delta; x_command];
 end
-    
-   
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Autopilot versions
@@ -76,10 +76,10 @@ function [delta, x_command] = autopilot_tuning(Va_c,h_c,chi_c,beta,Va,Vg,h,chi,p
             theta_c = 0;
         case 2 % tune the course loop
             if t==0
-                phi_c   = course_hold(chi_c, chi, r, Vg, 1, P);
+                phi_c   = course_hold(chi_c, chi, r, 1, P);
             else
-                phi_c   = course_hold(chi_c, chi, r, Vg, 0, P);
-            end                
+                phi_c   = course_hold(chi_c, chi, r, 0, P);
+            end
             delta_a = roll_hold(phi_c, phi, p, P);
             delta_r = 0;%sideslip_hold(beta,t,P);%0; % no rudder
             % use trim values for elevator and throttle while tuning the lateral autopilot
@@ -90,41 +90,41 @@ function [delta, x_command] = autopilot_tuning(Va_c,h_c,chi_c,beta,Va,Vg,h,chi,p
             theta_c = 20*pi/180;% + h_c;
             chi_c = 0;
             if t==0
-                phi_c   = course_hold(chi_c, chi, r, Vg, 1, P);
-                delta_t = airspeed_with_throttle_hold(Va_c, Va, 1, P);
+                phi_c   = course_hold(chi_c, chi, r, 1, P);
+                delta_t = airspeed_with_throttle_hold(Va_c, Va, P);
            else
-                phi_c   = course_hold(chi_c, chi, r, Vg, 0, P);
-                delta_t = airspeed_with_throttle_hold(Va_c, Va, 0, P);
+                phi_c   = course_hold(chi_c, chi, r, 0, P);
+                delta_t = airspeed_with_throttle_hold(Va_c, Va, P);
             end
             delta_e = pitch_hold(theta_c, theta, q, P);
             delta_a = roll_hold(phi_c, phi, p, P);
 %             delta_t = 1;
             delta_r = 0; % no rudder
             % use trim values for elevator and throttle while tuning the lateral autopilot
-        case 4 % tune the pitch to airspeed loop 
+        case 4 % tune the pitch to airspeed loop
             chi_c = 0;
             delta_t = P.u_trim(4);
             if t==0
-                phi_c   = course_hold(chi_c, chi, r, Vg, 1, P);
-                theta_c = airspeed_with_pitch_hold(Va_c, Va, 1, P);
+                phi_c   = course_hold(chi_c, chi, r, 1, P);
+                theta_c = airspeed_with_pitch_hold(Va_c, Va, P);
            else
-                phi_c   = course_hold(chi_c, chi, r, Vg, 0, P);
-                theta_c = airspeed_with_pitch_hold(Va_c, Va, 0, P);
+                phi_c   = course_hold(chi_c, chi, r, 0, P);
+                theta_c = airspeed_with_pitch_hold(Va_c, Va, P);
             end
             delta_a = roll_hold(phi_c, phi, p, P);
             delta_e = pitch_hold(theta_c, theta, q, P);
             delta_r = 0; % no rudder
             % use trim values for elevator and throttle while tuning the lateral autopilot
-        case 5 % tune the pitch to altitude loop 
+        case 5 % tune the pitch to altitude loop
             chi_c = 0;
             if t==0
-                phi_c   = course_hold(chi_c, chi, r, Vg, 1, P);
-                theta_c = altitude_hold(h_c, h, 1, P);
-                delta_t = airspeed_with_throttle_hold(Va_c, Va, 1, P);
+                phi_c   = course_hold(chi_c, chi, r, 1, P);
+                theta_c = altitude_hold(h_c, h, P);
+                delta_t = airspeed_with_throttle_hold(Va_c, Va, P);
            else
-                phi_c   = course_hold(chi_c, chi, r, Vg, 0, P);
-                theta_c = altitude_hold(h_c, h, 0, P);
-                delta_t = airspeed_with_throttle_hold(Va_c, Va, 0, P);
+                phi_c   = course_hold(chi_c, chi, r, 0, P);
+                theta_c = altitude_hold(h_c, h, P);
+                delta_t = airspeed_with_throttle_hold(Va_c, Va, P);
             end
             delta_a = roll_hold(phi_c, phi, p, P);
             delta_e = pitch_hold(theta_c, theta, q, P);
@@ -134,7 +134,7 @@ function [delta, x_command] = autopilot_tuning(Va_c,h_c,chi_c,beta,Va,Vg,h,chi,p
     end
     %----------------------------------------------------------
     % create outputs
-    
+
     % control outputs
     delta = [delta_e; delta_a; delta_r; delta_t];
     % commanded (desired) states
@@ -153,7 +153,7 @@ function [delta, x_command] = autopilot_tuning(Va_c,h_c,chi_c,beta,Va,Vg,h,chi,p
         0;...                    % q
         0;...                    % r
         ];
-            
+
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -173,19 +173,19 @@ function [delta, x_command] = autopilot_uavbook(Va_c,h_c,chi_c,Va,h,chi,phi,thet
         phi_c   = course_hold(chi_c, chi, r, 0, P);
         delta_r = 0;%coordinated_turn_hold(beta, 0, P);
     end
-    delta_a = roll_hold(phi_c, phi, p, P);     
-  
-    
+    delta_a = roll_hold(phi_c, phi, p, P);
+
+
     %----------------------------------------------------------
     % longitudinal autopilot
-    
+
     % define persistent variable for state of altitude state machine
     persistent altitude_state;
     persistent initialize_integrator;
     persistent delta_t;
     % initialize persistent variable
     if t==0
-        if h<=P.altitude_take_off_zone   
+        if h<=P.altitude_take_off_zone
             altitude_state = 1;
         elseif h<=h_c-P.altitude_hold_zone
             altitude_state = 2;
@@ -196,7 +196,7 @@ function [delta, x_command] = autopilot_uavbook(Va_c,h_c,chi_c,Va,h,chi,phi,thet
         end
         initialize_integrator = 1;
     end
-    
+
     % implement state machine
     switch altitude_state
         case 1  % in take-off zone
@@ -213,7 +213,7 @@ function [delta, x_command] = autopilot_uavbook(Va_c,h_c,chi_c,Va,h,chi,phi,thet
             delta_t = .6;
             theta_c = altitude_hold(h_c, h, P)
     end
-    
+
     if h > P.altitude_take_off_zone-5 || altitude_state ~= 1
         if h <= h_c-P.altitude_hold_zone
             altitude_state = 2;
@@ -228,11 +228,11 @@ function [delta, x_command] = autopilot_uavbook(Va_c,h_c,chi_c,Va,h,chi,phi,thet
 %     delta_t = 1;
     % artificially saturation delta_t
     delta_t = sat(delta_t,1,0);
- 
-    
+
+
     %----------------------------------------------------------
     % create outputs
-    
+
     % control outputs
     delta = [delta_e; delta_a; delta_r; delta_t];
     % commanded (desired) states
@@ -251,9 +251,9 @@ function [delta, x_command] = autopilot_uavbook(Va_c,h_c,chi_c,Va,h,chi,phi,thet
         0;...                    % q
         0;...                    % r
         ];
-            
+
     y = [delta; x_command];
- 
+
     end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -273,20 +273,20 @@ function [delta, x_command] = autopilot_TECS(Va_c,h_c,chi_c,Va,h,chi,phi,theta,p
         phi_c   = course_hold(chi_c, chi, r, 0, P);
         delta_r = 0;%coordinated_turn_hold(beta, 0, P);
     end
-    delta_a = roll_hold(phi_c, phi, p, P);     
-  
-    
+    delta_a = roll_hold(phi_c, phi, p, P);
+
+
     %----------------------------------------------------------
     % longitudinal autopilot based on total energy control
-    
-    
+
+
     delta_e = 0;
     delta_t = 0;
- 
-    
+
+
     %----------------------------------------------------------
     % create outputs
-    
+
     % control outputs
     delta = [delta_e; delta_a; delta_r; delta_t];
     % commanded (desired) states
@@ -305,11 +305,11 @@ function [delta, x_command] = autopilot_TECS(Va_c,h_c,chi_c,Va,h,chi,phi,theta,p
         0;...                    % q
         0;...                    % r
         ];
-            
+
     y = [delta; x_command];
- 
+
 end
-   
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -325,33 +325,41 @@ function [delta_a] = roll_hold(phi_c, phi, p, P)
     omega_n_phi = (abs(P.a_phi2)*P.delta_a_max/P.e_phi_max)^.5;
 
     K_d_phi = (2*P.Zeta_phi*omega_n_phi - P.a_phi1)/P.a_phi2;
-    
+
     delta_a = K_p_phi*(phi_c-phi) - K_d_phi*p;
     delta_a = sat(delta_a, 45*pi/180, -45*pi/180);
 end
-%good but needs tuning
+%good but needs tuningcourse_hold(chi_c, chi, r, Vg, 1, P);
 function [phi_c] = course_hold(chi_c, chi, r, flag, P)
     persistent i_error;
     persistent d_error;
+    persistent old_error
     if flag == 1
         i_error = 0;
         d_error = 0;
+        old_error = 0;
     end
+    
 %     i_error = sat(i_error + (chi_c - chi),pi/4,-pi/4);
-    i_error = i_error + (P.Ts/P.K_i_chi) * ((chi_c - chi) + d_error);
-    d_error = chi_c - chi;
-
-    phi_c       = P.K_p_chi*(chi_c - chi) + P.K_i_chi*(i_error);
-    if P.K_i_chi ~= 0
-        i_error = i_error + (P.Ts/P.K_i_chi) * (sat(phi_c, 45*pi/180, -45*pi/180) - phi_c);
+    % i_error = i_error + (P.Ts * 0.5) * ( chi_c - chi );
+    % d_error = chi_c - chi;
+    phi_c       = P.K_p_chi*(chi_c - chi);
+    if abs(phi_c) < 10 * pi / 180 % P.K_i_chi ~= 0
+        % i_error = i_error + (P.Ts * 0.5) * (sat(phi_c, 45*pi/180, -45*pi/180) - phi + old_error);
+        i_error = i_error + (P.Ts * 0.5) * (chi_c - chi + old_error);
     end
+
+    phi_c = phi_c + P.K_i_chi*(i_error);
+
     phi_c = sat(phi_c, 45*pi/180, -45*pi/180);
+
+    old_error = chi_c - chi;
 end
 
 
 function [delta_e] = pitch_hold(theta_c, theta, q, P)
 %     theta_c = sat(theta_c, 50*pi/180, -50*pi/180);
-    
+
     delta_e = P.K_p_theta*(theta_c - theta) - P.K_d_theta*q;
     delta_e = sat(delta_e, 45*pi/180, -45*pi/180);
 end
@@ -365,61 +373,83 @@ function [delta_r] = sideslip_hold(beta, t, P)
     K_i_beta = ((P.a_beta1+P.a_beta2*K_p_beta)/(2*P.Zeta_beta))^2/P.a_beta2;
     delta_r = -K_p_beta*beta - K_i_beta*i_error;
 end
+
 %good but with overshoot
 function [delta_t] = airspeed_with_throttle_hold(Va_c, Va, P)
 %     Va_c = Va_c - norm(P.x_trim(4:6));
     persistent i_error;
+    persistent old_error
     if isempty(i_error) == 1
         i_error = 0;
+        old_error = 0;
     end
-    i_error = i_error + (Va_c - Va);
-
+    delta_t = P.u_trim( 4, 1 ) + P.K_p_v*(Va_c - Va);
+    if 0 < delta_t && delta_t < 0.7
+        i_error = i_error + P.Ts * 0.5 * (Va_c - Va + old_error );
+    end
 %     delta_t_trim = P.x_trim(4);
 
-    delta_t = P.K_p_v*(Va_c - Va) + P.K_i_v*i_error;
-    delta_t = sat(delta_t, 1, 0);
+    delta_t = delta_t + P.K_i_v*i_error;
+    delta_t = sat(delta_t, 0.7, 0);
+
+    old_error = Va_c - Va;
 end
-  
+
 function [theta_c] = airspeed_with_pitch_hold(Va_c, Va, P)
     persistent i_error;
-    persistent d_error;
+    % persistent d_error;
+    persistent old_error
     if isempty(i_error) == 1
         i_error = 0;
         d_error = 0;
+        old_error = 0;
     end
-    i_error = i_error + (Va_c - Va);
-    
-    theta_c = P.K_p_V2*(Va_c - Va) + P.K_i_V2*i_error;
-    if P.K_i_V2 ~= 0
-        i_error = i_error + (P.Ts/P.K_i_V2) * (sat(theta_c, 45*pi/180, -45*pi/180) - theta_c);
+    % i_error = i_error + P.Ts * 0.5 * (Va_c - Va + old_error);
+
+    theta_c = P.K_p_V2*(Va_c - Va)
+    if abs(theta_c) < 30 * pi/180 % P.K_i_V2 ~= 0
+        % i_error = i_error + (P.Ts * 0.5 ) * (sat(theta_c, 45*pi/180, -45*pi/180) - theta_c + old_error);
+        i_error = i_error + (P.Ts * 0.5 ) * (Va_c - Va + old_error);
     end
+
+    theta_c = theta_c + P.K_i_V2*i_error;
+
     theta_c = sat(theta_c, 45*pi/180, -45*pi/180);
+
+    old_error = Va_c - Va;
 end
+
 function [theta_c] = altitude_hold(h_c, h, P)
     persistent i_error;
-    persistent d_error;
-    persistent differentiator;
-    persistent integrator;
-    persistent error_dl;
-    K_d_h = .8;
+%     persistent d_error;
+    % persistent differentiator;
+    % persistent integrator;
+    persistent old_error;
+%     K_d_h = .8;
     if isempty(i_error) == 1
         i_error = 0;
         d_error = 0;
-        differentiator = 0;
+        old_error = 0;
+        % differentiator = 0;
     end
-    error = h_c - h;
-    d_error = error - d_error;
+    err = h_c - h;
+    % d_error = err - d_error;
 %     if abs(error) > 2
 %         d_error = 0;
 %     end
-    
-    i_error = i_error + (h_c - h);
 
-    theta_c = P.K_p_h*(h_c - h) - K_d_h*d_error + P.K_i_h*i_error - K_d_h*d_error;
-    if P.K_i_h ~= 0
-        i_error = i_error + (P.Ts/P.K_i_h) * (sat(theta_c, 30*pi/180, -30*pi/180) - theta_c);
+    % i_error = i_error + (h_c - h);
+    theta_c = P.K_p_h*(h_c - h)
+    if  abs(theta_c) < 20 * pi / 180% P.K_i_h ~= 0
+        % i_error = i_error + (P.Ts * 0.5) * (sat(h_c, 30*pi/180, -30*pi/180) - h + old_error);
+        i_error = i_error + (P.Ts * 0.5) * ( h_c - h + old_error);
     end
+
+    theta_c = theta_c + P.K_i_h*i_error;% - K_d_h*d_error; % - K_d_h*d_error
+
     theta_c = sat(theta_c, 30*pi/180, -30*pi/180);
+
+    old_error = err;
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % sat
@@ -434,5 +464,15 @@ function out = sat(in, up_limit, low_limit)
       out = in;
   end
 end
-  
- 
+
+
+
+
+
+
+
+
+
+
+
+%

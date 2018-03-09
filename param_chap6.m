@@ -123,6 +123,7 @@ P.psi0   = x_trim(9);  % initial yaw angle
 P.p0     = x_trim(10);  % initial body frame roll rate
 P.q0     = x_trim(11);  % initial body frame pitch rate
 P.r0     = x_trim(12);  % initial body frame yaw rate
+P.Va0    = norm(x_trim(4:6)); % initial airspeed
 % compute different transfer functions
 [T_phi_delta_a,T_chi_phi,T_theta_delta_e,T_h_theta,T_h_Va,T_Va_delta_t,T_Va_theta,T_v_delta_r, P.a_phi1, P.a_phi2, P.a_theta1, P.a_theta2, P.a_theta3, P.a_V1, P.a_V2, P.a_beta1, P.a_beta2]...
     = compute_tf_model(x_trim,u_trim,P);
@@ -148,7 +149,7 @@ P.Va_nominal = 10;
 
 
 P.Zeta_V = 4;
-P.omega_n_v = .2;
+P.omega_n_v = 1.2;
 
 
 P.delta_r_max = 45*pi/180;
@@ -175,14 +176,14 @@ P.K_p_v = (2*P.Zeta_V*P.omega_n_v - P.a_V1)/P.a_V2;
 P.K_i_v = P.omega_n_v^2/P.a_V2;
 
 
-P.W_chi = 20;
+P.W_chi = 15;
 P.Zeta_chi = 1;
 omega_n_phi = (abs(P.a_phi2)*P.delta_a_max/P.e_phi_max)^.5;
 omega_n_chi = omega_n_phi/P.W_chi;
 P.K_p_chi     = 2*P.Zeta_chi*omega_n_chi*Va_trim/P.gravity;
 P.K_i_chi     = omega_n_chi^2*Va_trim/P.gravity;
 
-P.Zeta_V2 = .1;
+P.Zeta_V2 = 1;
 P.W_V2 = 10;
 w_n_V2 = w_n_theta/P.W_V2;
 
@@ -190,8 +191,8 @@ P.K_i_V2 = -w_n_V2^2/(K_theta_DC*P.gravity);
 
 P.K_p_V2 = (P.a_V1 - 2*P.Zeta_V2*w_n_V2)/(K_theta_DC*P.gravity);
 
-P.Zeta_h = 5;%3
-P.W_h = 15;
+P.Zeta_h = .7;
+P.W_h = 25;
 
 w_n_h = w_n_theta/P.W_h;
 P.K_i_h = w_n_h^2/(K_theta_DC*Va_trim);
@@ -201,3 +202,9 @@ P.K_p_h = 2*P.Zeta_h*w_n_h/(K_theta_DC * Va_trim);
 
 %Sensors
 P.Ts_gps = 1;
+P.sigma_accel = .0025*P.gravity;
+
+%chap 8
+P.bias_gyro_x = 0;
+P.bias_gyro_y = 0;
+P.bias_gyro_z = 0;

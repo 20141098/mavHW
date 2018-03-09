@@ -82,24 +82,23 @@ function xhat = estimate_states(uu, P)
    static_pres_hat = LPF(static_pres_hat, y_static_pres, a_lpf_sp);
    hhat = static_pres_hat / (P.rho * P.gravity);
    
-   diff_pres_hat = LPF(diff_pres_hat, y_diff_pres, a_lpf_dp);
-   Vahat = sqrt(2*diff_pres_hat/P.rho);
    
 %    accel_x = LPF(accel_x, y_accel_x, a_lpf_accelx);
 %    accel_y = LPF(accel_y, y_accel_y, a_lpf_accely);
 %    accel_z = LPF(accel_z, y_accel_z, a_lpf_accelz);
    accel = [y_accel_x;y_accel_y;y_accel_z];
+   Vahat = y_diff_pres/P.rho;
    
 %    phihat = atan(accel_y/accel_z);
 %    thetahat = asin(accel_x/P.gravity);
-    if t > 4
-        thetahat
-    end
+
    anglehat = attitudeKalman(phihat, thetahat, accel, phat, qhat, rhat, Vahat, 0, 0, P);
    phihat = anglehat(1);
    thetahat = anglehat(2);
    
    
+   diff_pres_hat = LPF(diff_pres_hat, y_diff_pres, a_lpf_dp);
+   Vahat = sqrt(2*diff_pres_hat/P.rho);
    pnhat = LPF(pnhat, y_gps_n, a_lpf_n);
    pehat = LPF(pehat, y_gps_e, a_lpf_e);
    chihat = LPF(chihat, y_gps_course, a_lpf_chi);
@@ -161,7 +160,7 @@ function [xhat] = attitudeKalman(phi, theta, accel, p,q,r,Va,zeta_phi,zeta_theta
     zeta = [zeta_phi;zeta_theta];
     xhat = [phi;theta];
     persistent COV
-    Q =[1e-8, 0; 0, 1e-15];
+    Q =[1e-15, 0; 0, 1e-15];
     if isempty(COV)
         COV = [1,0;0,1];
     end
@@ -194,8 +193,8 @@ function [xhat] = attitudeKalman(phi, theta, accel, p,q,r,Va,zeta_phi,zeta_theta
             r*Va*cos(theta) - p*Va*sin(theta) - P.gravity*cos(theta)*sin(phi);
             -q*Va*cos(theta)-P.gravity*cos(theta)*cos(phi)];%checked
         residual = accel - H;
-        residual(1) = sat(residual(1),.01*pi/180);%,-.01);
-        residual(2) = sat(residual(2),.01*pi/180);%,-.01);
+        residual(1) = sat(residual(1),.0001*pi/180);%,-.01);
+        residual(2) = sat(residual(2),.0001*pi/180);%,-.01);
         xhat = xhat +  Li*(residual);
     end
     xhat(1) = wrapAngle(xhat(1));

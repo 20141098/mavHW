@@ -149,7 +149,7 @@ P.Va_nominal = 10;
 
 
 P.Zeta_V = 4;
-P.omega_n_v = .2;
+P.omega_n_v = 1.2;
 
 
 P.delta_r_max = 45*pi/180;
@@ -176,14 +176,14 @@ P.K_p_v = (2*P.Zeta_V*P.omega_n_v - P.a_V1)/P.a_V2;
 P.K_i_v = P.omega_n_v^2/P.a_V2;
 
 
-P.W_chi = 20;
+P.W_chi = 15;
 P.Zeta_chi = 1;
 omega_n_phi = (abs(P.a_phi2)*P.delta_a_max/P.e_phi_max)^.5;
 omega_n_chi = omega_n_phi/P.W_chi;
 P.K_p_chi     = 2*P.Zeta_chi*omega_n_chi*Va_trim/P.gravity;
 P.K_i_chi     = omega_n_chi^2*Va_trim/P.gravity;
 
-P.Zeta_V2 = .1;
+P.Zeta_V2 = 1;
 P.W_V2 = 10;
 w_n_V2 = w_n_theta/P.W_V2;
 
@@ -191,8 +191,8 @@ P.K_i_V2 = -w_n_V2^2/(K_theta_DC*P.gravity);
 
 P.K_p_V2 = (P.a_V1 - 2*P.Zeta_V2*w_n_V2)/(K_theta_DC*P.gravity);
 
-P.Zeta_h = 5;
-P.W_h = 15;
+P.Zeta_h = .7;
+P.W_h = 25;
 
 w_n_h = w_n_theta/P.W_h;
 P.K_i_h = w_n_h^2/(K_theta_DC*Va_trim);
@@ -208,3 +208,22 @@ P.sigma_accel = .0025*P.gravity;
 P.bias_gyro_x = 0;
 P.bias_gyro_y = 0;
 P.bias_gyro_z = 0;
+
+%---------------------------------------
+% sensor parameters
+    P.sigma_gyro = 0.13*pi/180; % standard deviation of gyros in rad/sec
+    P.bias_gyro_x = 0;%0.1*pi/180*rand; % bias on x_gyro
+    P.bias_gyro_y = 0;%0.1*pi/180*rand; % bias on y_gyro
+    P.bias_gyro_z = 0;%0.1*pi/180*rand; % bias on z_gyro
+    P.sigma_accel = 0.0025*9.8; % standard deviation of accelerometers in m/s^2
+    P.sigma_static_pres = 0.01*1000; % standard deviation of static pressure sensor in Pascals
+    P.sigma_diff_pres = 0.002*1000;  % standard deviation of diff pressure sensor in Pascals
+
+% GPS parameters
+    P.Ts_gps = 1; % sample rate of GPS in s
+    P.beta_gps = 1/1100; % 1/s
+    P.sigma_n_gps = 0.21;
+    P.sigma_e_gps = 0.21; 
+    P.sigma_h_gps = 0.40;
+    P.sigma_Vg_gps = 0.05;
+    P.sigma_course_gps = P.sigma_Vg_gps/P.Va0;

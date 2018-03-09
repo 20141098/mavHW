@@ -35,15 +35,15 @@ function y = sensors(uu, P)
     
     % simulate rate gyros (units are rad/sec)
     sigma_gyro = .13;
-    y_gyro_x = p + sqrt(sigma_gyro)*randn();%still need to add the zero-mean gausian
-    y_gyro_y = q + sqrt(sigma_gyro)*randn();
-    y_gyro_z = r + sqrt(sigma_gyro)*randn();
+    y_gyro_x = p + P.bias_gyro_x * sigma_gyro*randn();%still need to add the zero-mean gausian
+    y_gyro_y = q + P.bias_gyro_y * sigma_gyro*randn();
+    y_gyro_z = r + P.bias_gyro_z * sigma_gyro*randn();
 
     % simulate accelerometers (units of g)
     
-    y_accel_x = F_x/P.mass + P.gravity*sin(theta) + sqrt(P.sigma_accel)*randn();
-    y_accel_y = F_y/P.mass - P.gravity*cos(theta)*sin(phi) + sqrt(P.sigma_accel)*randn();
-    y_accel_z = F_z/P.mass - P.gravity*cos(theta)*cos(phi) + sqrt(P.sigma_accel)*randn();
+    y_accel_x = F_x/P.mass + P.gravity*sin(theta);% + sqrt(P.sigma_accel)*randn();
+    y_accel_y = F_y/P.mass - P.gravity*cos(theta)*sin(phi);% + sqrt(P.sigma_accel)*randn();
+    y_accel_z = F_z/P.mass - P.gravity*cos(theta)*cos(phi);% + sqrt(P.sigma_accel)*randn();
 
     % simulate pressure sensors
     beta_abs_pres = .125;
