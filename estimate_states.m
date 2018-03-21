@@ -234,7 +234,12 @@ function xhat = gpsKalman(xhat, Va, q, r, phi, theta, y_gps, P)
     COV = (1-L*C)*COV;
     xhat = xhat + L*(y_gps-h_x);
     
-        
+    while xhat(4) < -pi
+        xhat(4) = xhat(4) + 2*pi;
+    end
+    while xhat(4) > pi
+        xhat(4) = xhat(4) - 2*pi;
+    end
     
 end
 

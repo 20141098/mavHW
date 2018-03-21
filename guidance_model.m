@@ -69,7 +69,7 @@ sizes = simsizes;
 sizes.NumContStates  = 7;
 sizes.NumDiscStates  = 0;
 sizes.NumOutputs     = 16+12;
-sizes.NumInputs      = 3;
+sizes.NumInputs      = 4;
 sizes.DirFeedthrough = 0;
 sizes.NumSampleTimes = 1;   % at least one sample time is needed
 
@@ -124,31 +124,35 @@ function sys=mdlDerivatives(t,x,u,P)
   Va_c   = u(1); % commanded airspeed
   h_c    = u(2); % commanded altitude
   chi_c  = u(3); % commanded heading angle
+  phi_ff = u(4); % feedforward roll command
   
-  b_chidot  = .9;
-  b_chi     = .5;
-  b_hdot    = .9;
-  b_h       = .5;
-  b_Va      = 5;
+  % compute chi_c_dot from roll feedforward
+  chi_c_dot = P.gravity/Va*tan(phi_ff);
   
-  
-  psi = chi - asin((1/Va)*[P.wind_n,P.wind_e]*[-sin(chi);cos(chi)]);
-  chidot_c = 0;
-  hdot_c = 0;
-  
-  pndot     = Va*cos(psi) + P.wind_n;
-  pedot     = Va*sin(psi) + P.wind_e;
-  chiddot   = b_chidot*(chidot_c - chidot) +b_chi*(chi_c - chi);
-  hddot     = b_hdot*(hdot_c - hdot) + b_h * (h_c - h);
-  Vadot     = b_Va*(Va_c - Va);
+  % solve for heading and groundspeed
+  psi = chi - asin( (-P.wind_n*sin(chi)+P.wind_e*cos(chi))/Va );
+  %Vg  = [cos(chi), sin(chi)]*(Va*[cos(psi); sin(psi)] + [wn; we]); 
+ 
+  % compute groundspeed  
+  pndot   = Va*cos(psi) + P.wind_n;
+  pedot   = Va*sin(psi) + P.wind_e;
+  chiddot = P.b_chidot*(chi_c_dot-chidot) + P.b_chi*(chi_c-chi);
+  Vadot   = P.b_Va*(Va_c-Va);
 
-%     pndot = Va*cos(psi) + P.wind_n;
-%     pedot = Va*sin(psi) + P.wind_e;
-%     psidot = P.gravity*tan(phi)/Va;
-%     hddot = b_hdot*(hdot_c - hdot) + b_h * (h_c - h);
-%     Vadot = b_Va*(Va_c - va);
-%     phidot = b_phi*(phi_c - phi);
-   
+  % don't let climb rate exceed Va*sin(\gamma_max)
+  hddot   = -P.b_hdot*hdot + P.b_h*(h_c-h);
+  if (hdot>=Va*sin(P.gamma_max)) & (hddot>0),
+      hddot = 0;
+  elseif (hdot<=-Va*sin(P.gamma_max)) & (hddot<0),
+      hddot = 0;
+  end
+  
+  if (chidot <= -10*pi/180) & (chiddot<0)
+      chiddot = 0;
+  elseif (chidot >= 10*pi/180) & (chiddot > 0)
+      chiddot = 0;
+  end
+  
   
 sys = [...
     pndot;...
