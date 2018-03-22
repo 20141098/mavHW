@@ -68,7 +68,8 @@ function out = path_follow(in,P)
               chi_q = chi_q -2*pi;
           end
           e_py = -sin(chi_q)*(pn - r_path(1)) + cos(chi_q)*(pe-r_path(2));
-          k_path = .2;
+          k_path = .03;
+          chi_inf = 40*pi/180;
           chi_c = chi_q - chi_inf*(2/pi)*atan(k_path * e_py);
           h_c = h_d;
           phi_ff = phi;

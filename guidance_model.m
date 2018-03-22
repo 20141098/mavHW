@@ -147,12 +147,16 @@ function sys=mdlDerivatives(t,x,u,P)
       hddot = 0;
   end
   
-  if (chidot <= -10*pi/180) & (chiddot<0)
-      chiddot = 0;
-  elseif (chidot >= 10*pi/180) & (chiddot > 0)
-      chiddot = 0;
-  end
-  
+%   if (chidot <= -10*pi/180) & (chiddot<0)
+%       chiddot = 0;
+%   elseif (chidot >= 10*pi/180) & (chiddot > 0)
+%       chiddot = 0;
+%   end
+    if (chidot >= 20*pi/180) & (chiddot>0)
+        chiddot = 0;
+    elseif (chidot <= -20*pi/180) & (chiddot<0)
+        chiddot = 0;
+    end
   
 sys = [...
     pndot;...
