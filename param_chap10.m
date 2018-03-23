@@ -1,5 +1,3 @@
-clear all
-
 P.gravity = 9.81;
    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -61,8 +59,8 @@ P.epsilon       = 0.1592;
 P.alpha0        = 0.4712;
 
 % wind parameters
-P.wind_n = 3;
-P.wind_e = -3;
+P.wind_n = 0;%3;
+P.wind_e = 0;%2;
 P.wind_d = 0;
 P.L_u = 200;
 P.L_v = 200;
@@ -187,7 +185,7 @@ P.r0     = x_trim(12);  % initial body frame yaw rate
    % maximum possible elevator command
    delta_e_max = 45*pi/180;
    % Pitch command when delta_e_max is achieved
-   theta_max = 10*pi/180;
+   theta_max = 5*pi/180;
    % pick natural frequency to achieve delta_e_max for step of theta_max
    zeta_pitch = 0.9;
    % set control gains based on zeta and wn
@@ -204,7 +202,7 @@ P.r0     = x_trim(12);  % initial body frame yaw rate
    P.altitude_ki = wn_altitude^2/P.K_theta_DC/P.Va0;
 %   P.altitude_kp = 0.0114;
 %   P.altitude_ki = 0.0039;
-   P.altitude_kd = 0-.01;
+   P.altitude_kd = 0;%-.001;
  
 % airspeed hold using pitch
    [num,den]=tfdata(T_Va_theta,'v');
@@ -218,7 +216,7 @@ P.r0     = x_trim(12);  % initial body frame yaw rate
    [num,den]=tfdata(T_Va_delta_t,'v');
    a_Vt1 = den(2);
    a_Vt2 = num(2);
-   zeta_airspeed_throttle = .7;%0.707;
+   zeta_airspeed_throttle = 2;%0.707;
 %    wn_airspeed_throttle = 5;   % a value of 5 causes instability...
    wn_airspeed_throttle = 3;
    P.airspeed_throttle_kp = (2*zeta_airspeed_throttle*wn_airspeed_throttle-a_Vt1)/a_Vt2;
@@ -232,15 +230,15 @@ P.r0     = x_trim(12);  % initial body frame yaw rate
  
 % TECS gains
     % throttle (unitless)
-    P.TECS_E_kp = 1;
-    P.TECS_E_ki = .5;
+    P.TECS_E_kp = 15;
+    P.TECS_E_ki = 8;
   
     % pitch command (unitless)
-    P.TECS_L_kp = 1;
-    P.TECS_L_ki = .1;
+    P.TECS_L_kp = 6;
+    P.TECS_L_ki = 2;
     
     % saturated altitude error
-    P.TECS_h_error_max = 10; % meters
+    P.TECS_h_error_max = 30; % meters
 
     
 %---------------------------------------
@@ -261,6 +259,8 @@ P.r0     = x_trim(12);  % initial body frame yaw rate
     P.sigma_h_gps = 0.40;
     P.sigma_Vg_gps = 0.05;
     P.sigma_course_gps = P.sigma_Vg_gps/P.Va0;
+
+
 
 
 

@@ -72,7 +72,7 @@ function out = path_follow(in,P)
           chi_inf = 40*pi/180;
           chi_c = chi_q - chi_inf*(2/pi)*atan(k_path * e_py);
           h_c = h_d;
-          phi_ff = phi;
+          phi_ff = 0;
            
       case 2, % follow orbit specified by c, rho, lam
           d = sqrt((pn-c_orbit(1))^2 + (pe - c_orbit(2))^2);
@@ -86,7 +86,7 @@ function out = path_follow(in,P)
           k_orbit = 1;
           chi_c = psi + lam_orbit*(pi/2 + atan(k_orbit*(d-rho_orbit)/rho_orbit));
           h_c = -c_orbit(3);
-          phi_ff = phi;
+          phi_ff = lam_orbit*atan(Va^2/(P.gravity*rho_orbit));
   end
   
   % command airspeed equal to desired airspeed
