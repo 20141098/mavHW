@@ -77,16 +77,16 @@ function out = path_manager_line(in,P,start_of_simulation)
   else
     flag = 2;                  % following straight line path
   end
-  Va_d   = waypoints(ptr_a+1,5); % desired airspeed along waypoint path
-  r      = waypoints(ptr_a,1:3);
-  q      = waypoints(ptr_a+1,1:3) - waypoints(ptr_a,1:3);
+  Va_d   = waypoints(5,ptr_a+1); % desired airspeed along waypoint path
+  r      = waypoints(1:3,ptr_a);
+  q      = waypoints(1:3,ptr_a+1) - waypoints(1:3,ptr_a);
   q      = q/norm(q);
-  c      = waypoints(ptr_a+1,1:3);
+  c      = waypoints(1:3,ptr_a+1);
   rho    = P.R_min;
   lambda = 1;
   
   out = [flag; Va_d; r; q; c; rho; lambda; state; flag_need_new_waypoints];
-
+  ptr_a = ptr_a + 1;
   % determine if next waypoint path has been reached, and rotate ptrs if
   % necessary
   
