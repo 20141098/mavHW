@@ -68,8 +68,12 @@ function xhat = estimate_states(uu, P)
    hhat = static_pres_hat / (P.rho * P.gravity);
 
    accel = [y_accel_x;y_accel_y;y_accel_z];
-   Vahat = y_diff_pres/P.rho;
+%    Vahat = y_diff_pres/P.rho;
+
+   diff_pres_hat = LPF(diff_pres_hat, y_diff_pres, a_lpf_dp);
+   Vahat = sqrt(2*diff_pres_hat/P.rho);
    
+
    phat = LPF(phat, y_gyro_x, a_lpf_p);
    qhat = LPF(qhat, y_gyro_y, a_lpf_q);
    rhat = LPF(rhat, y_gyro_z, a_lpf_r);
