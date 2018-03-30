@@ -33,7 +33,7 @@ function drawPathError(uu)
     if t==0,
 
         figure(4), clf
-        S = 1000;
+        S = 500;
         switch flag_path,
             case 1,
                 XX = [r_path(1), r_path(1)+S*q_path(1)];
