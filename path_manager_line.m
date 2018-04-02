@@ -55,39 +55,61 @@ function out = path_manager_line(in,P,start_of_simulation)
   persistent waypoints_old   % stored copy of old waypoints
   persistent ptr_a           % waypoint pointer
   persistent flag_need_new_waypoints % flag that request new waypoints from path planner
-  
+  persistent q_l;
   
   if start_of_simulation || isempty(waypoints_old),
       waypoints_old = zeros(5,P.size_waypoint_array);
       flag_need_new_waypoints = 0;
-     
+      q_l = [pn;pe;-h];
   end
   
   % if the waypoints have changed, update the waypoint pointer
   if min(min(waypoints==waypoints_old))==0,
-      ptr_a = 1;
+      ptr_a = 2;
       waypoints_old = waypoints;
       flag_need_new_waypoints = 0;
   end
   
  
   % construct output for path follower
-  if ptr_a == length(waypoints)
-    flag = 1;
+  Va_d   = waypoints(5,ptr_a); % desired airspeed along waypoint path
+  if ptr_a > 1
+      r  = waypoints(1:3,ptr_a-1);
   else
-    flag = 2;                  % following straight line path
+      r  = [pn;pe;-h];
   end
-  Va_d   = waypoints(5,ptr_a+1); % desired airspeed along waypoint path
-  r      = waypoints(1:3,ptr_a);
-  q      = waypoints(1:3,ptr_a+1) - waypoints(1:3,ptr_a);
+%   q_l    = waypoints(1:3,ptr_a) - 
+  q      = waypoints(1:3,ptr_a) - r;
   q      = q/norm(q);
-  c      = waypoints(1:3,ptr_a+1);
+  c      = waypoints(1:3,ptr_a);
   rho    = P.R_min;
-  lambda = 1;
+  lambda = -1;
   
+  n = (q_l + q)/norm(q_l + q);
+  if ([pn;pe;-h]-waypoints(1:3,ptr_a))'*n >= 0
+      ptr_a = ptr_a + 1;
+  end
+%   d = waypoints(:,ptr_a);
+%   dist = (d(1) - pn)^2 + (d(2)-pe)^2 + (d(3)+h)^2;
+%   if ((dist) < 5) && (waypoints(1,ptr_a+1) ~= -9999)
+%       ptr_a = ptr_a + 1;
+%   end
+%   if (waypoints(1,ptr_a+1) ~= -9999)
+      flag = 1;
+%   else
+%       if dist < (P.R_min + 30)^2
+%           flag = 2;
+%       else
+%           flag = 1;
+%       end
+%   end
   out = [flag; Va_d; r; q; c; rho; lambda; state; flag_need_new_waypoints];
-  ptr_a = ptr_a + 1;
+%   if waypoints(1, ptr_a+1) ~= -9999 
+%     flag = 2;           % following straight line path
+%   else
+%     flag = 1;                  
+%   end
   % determine if next waypoint path has been reached, and rotate ptrs if
   % necessary
-  
+  q_l = q;
 end

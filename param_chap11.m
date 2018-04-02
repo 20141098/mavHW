@@ -140,7 +140,7 @@ P.r0     = x_trim(12);  % initial body frame yaw rate
     % maximum possible aileron command
     delta_a_max = 45*pi/180;
     % Roll command when delta_a_max is achieved
-    phi_max = 20*pi/180;
+    phi_max = 40*pi/180;
     P.phi_max = phi_max;
     % pick natural frequency to achieve delta_a_max for step of phi_max
     zeta_roll = 2;

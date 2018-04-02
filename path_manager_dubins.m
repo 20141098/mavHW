@@ -53,13 +53,14 @@ function out = path_manager_dubins(in,P,start_of_simulation)
   p = [pn; pe; -h];
 
   persistent waypoints_old   % stored copy of old waypoints
-  persistent ptr_a           % waypoint pointer
+  persistent ptr_a ptr_b          % waypoint pointer
+  persistent start_node end_node
   persistent state_transition % state of transition state machine
   persistent dubinspath
   persistent flag_need_new_waypoints % flag that request new waypoints from path planner
   persistent flag_first_time_in_state
   
-  if start_of_simulation,
+  if start_of_simulation
       waypoints_old = zeros(5,P.size_waypoint_array);
       flag_need_new_waypoints = 0;
       state_transition = 0;
@@ -69,7 +70,7 @@ function out = path_manager_dubins(in,P,start_of_simulation)
   
   % if the waypoints have changed, update the waypoint pointer and plan new
   % Dubin's path
-  if min(min(waypoints==waypoints_old))==0,
+  if min(min(waypoints==waypoints_old))==0
       waypoints_old = waypoints;
       state_transition = 1;
       ptr_a = 1;
@@ -80,26 +81,25 @@ function out = path_manager_dubins(in,P,start_of_simulation)
       flag_need_new_waypoints = 0;
       flag_first_time_in_state = 1;
   end
-  ptr_b = ptr_a + 1;
   
   % define transition state machine
-  switch state_transition,
-      case 0, % beginning of simulation
-          flag   = 1;
-          Va_d   = waypoints(5,ptr_b);
-          r      = dubinspath.w1;
-          q      = dubinspath.q1;
-          c      = dubinspath.cs;
-          rho    = dubinspath.R;
-          lambda = dubinspath.lams;
-          if flag_first_time_in_state,
+  switch state_transition
+      case 0 % beginning of simulation
+          flag   = 2;%
+          Va_d   = waypoints(5,ptr_a);%
+          r      = start_node(1:3);%
+          q      = end_node(1:3)-start_node(1:3);%
+          c      = start_node(1:3);%
+          rho    = P.R_min;%
+          lambda = 1;%
+          if flag_first_time_in_state
               flag_first_time_in_state =0;
           end
       
-      case 1, % follow first orbit on Dubins path until intersect H1
+      case 1 % follow first orbit on Dubins path until intersect H1
           flag   = 2;  % following orbit
-          Va_d   = waypoints(5,ptr_a); % desired airspeed along waypoint path
-          r      = dubinspath.w1;
+          Va_d   = waypoints(5,ptr_b); % desired airspeed along waypoint path
+          r      = waypoints(1:3,ptr_a);
           q      = dubinspath.q1;
           c      = dubinspath.cs;
           rho    = dubinspath.R;
@@ -108,60 +108,60 @@ function out = path_manager_dubins(in,P,start_of_simulation)
           if ((p-dubinspath.w1)'*dubinspath.q1 >= 0)&&(flag_first_time_in_state==1) % start in H1
               state_transition = 2;
               flag_first_time_in_state = 1;
-          elseif (p-dubinspath.w1)'*dubinspath.q1 >= 0, % entering H1
+          elseif (p-dubinspath.w1)'*dubinspath.q1 >= 0 % entering H1
               state_transition = 3;
               flag_first_time_in_state = 1;
           else
               flag_first_time_in_state = 0;
           end
           
-      case 2, % follow first orbit on Dubins path until on right side of H1
+      case 2 % follow first orbit on Dubins path until on right side of H1
           flag   = 2;  % following orbit
           Va_d   = waypoints(5,ptr_b); % desired airspeed along waypoint path
-          r      = dubinspath.w1;
-          q      = dubinspath.q1;
-          c      = dubinspath.cs;
-          rho    = dubinspath.R;
-          lambda = dubinspath.lams;
+          r      = start_node(1:3)';%
+          q      = dubinspath.q1;%
+          c      = dubinspath.cs;%
+          rho    = dubinspath.R;%
+          lambda = dubinspath.lame;%
           
-          if (p-dubinspath.w1)'*dubinspath.q1 < 0, % get to right side H1
+          if (p-dubinspath.w1)'*dubinspath.q1 < 0 % get to right side H1
               state_transition = 1;
               flag_first_time_in_state = 1;
           else
               flag_first_time_in_state = 0;
           end
           
-      case 3, % follow straight line on Dubins path until intersect H2
+      case 3 % follow straight line on Dubins path until intersect H2
           flag   = 1;  % following straight line path
-          Va_d   = waypoints(5,ptr_a); % desired airspeed along waypoint path
+          Va_d   = waypoints(5,ptr_b); % desired airspeed along waypoint path
           r      = dubinspath.w1;
           q      = dubinspath.q1;
-          c      = dubinspath.cs;
-          rho    = dubinspath.R;
-          lambda = dubinspath.lams;
+          c      = dubinspath.ce;%
+          rho    = dubinspath.R;%
+          lambda = dubinspath.lame;%
           flag_first_time_in_state = 0;
           
-          if (p-dubinspath.w2)'*dubinspath.q1 >= 0, % entering H2
+          if (p-dubinspath.w2)'*dubinspath.q1 >= 0 % entering H2
               state_transition = 4;
               flag_first_time_in_state = 1;
           end
               
-      case 4, % follow second orbit on Dubins path until intersect H3
+      case 4 % follow second orbit on Dubins path until intersect H3
           flag   = 2;  % following orbit
-          Va_d   = waypoints(5, ptr_a); % desired airspeed along waypoint path
-          r      = dubinspath.w1;
-          q      = dubinspath.q1;
+          Va_d   = waypoints(5,ptr_b); % desired airspeed along waypoint path
+          r      = start_node(1:3)';%
+          q      = dubinspath.q1;%
           c      = dubinspath.ce;
           rho    = dubinspath.R;
           lambda = dubinspath.lame;
           flag_first_time_in_state = 0;
           
-          if ((p-dubinspath.w3)'*dubinspath.q3 >= 0)&&(flag_first_time_in_state==1), % start in H3
+          if ((p-dubinspath.w3)'*dubinspath.q3 >= 0)&&(flag_first_time_in_state==1) % start in H3
               state_transition = 5;
               flag_first_time_in_state=1;
-          elseif (p-dubinspath.w3)'*dubinspath.q3 >= 0, % entering H3
+          elseif (p-dubinspath.w3)'*dubinspath.q3 >= 0 % entering H3
               % increase the waypoint pointer
-              if ptr_a==num_waypoints-1,
+              if ptr_a==num_waypoints-1
                   flag_need_new_waypoints = 1;
                   ptr_b = ptr_a+1;
               else
@@ -178,29 +178,35 @@ function out = path_manager_dubins(in,P,start_of_simulation)
               flag_first_time_in_state = 0;
           end
 
-      case 5, % follow first orbit on Dubins path until on right side of H3
+      case 5 % follow first orbit on Dubins path until on right side of H3
           flag   = 2;  % following orbit
-          Va_d   = waypoint(5,ptr_a); % desired airspeed along waypoint path
-          r      = dubinspath.w1;
-          q      = dubinspath.q1;
-          c      = dubinspath.cs;
-          rho    = dubinspath.R;
-          lambda = dubinspath.lambs;
+          Va_d   = waypoints(5,ptr_b); % desired airspeed along waypoint path
+          r      = end_node(1:3)';%
+          q      = dubinspath.q1;%
+          c      = dubinspath.ce;%
+          rho    = dubinspath.R;%
+          lambda = dubinspath.lame;%
           flag_first_time_in_state = 0;
           
-          if (p-dubinspath.w3)'*dubinspath.q3 < 0, % get to right side of H3
+          if (p-dubinspath.w3)'*dubinspath.q3 < 0 % get to right side of H3
               state_transition = 4;
               flag_first_time_in_state = 1;
           else
               flag_first_time_in_state = 0;
+              state_transition = 1;
+              if ptr_a < num_waypoints
+                ptr_a = ptr_a + 1;
+                ptr_b = ptr_a + 1
+                start_node = [waypoints(1:4,ptr_a)', 0, 0];
+                end_node   = [waypoints(1:4,ptr_b)', 0, 0];      
+                dubinspath = dubinsParameters(start_node, end_node, P.R_min);  
+              end
           end
           
               
   end
   
   out = [flag; Va_d; r; q; c; rho; lambda; state; flag_need_new_waypoints];
-  ptr_a = ptr_a + 1;
-  
 
 end
 
