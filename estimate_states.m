@@ -25,7 +25,7 @@
 %            5/18/2010 - RB
 %
 
-function xhat = estimate_states(uu, P)
+function [xhat, particles] = estimate_states(uu, P)
 
    % rename inputs
    y_gyro_x      = uu(1);
@@ -93,6 +93,8 @@ function xhat = estimate_states(uu, P)
    gps = [y_gps_n;y_gps_e;y_gps_Vg;y_gps_course];
    
    gpshat = [pnhat;pehat;Vghat;chihat;psihat];
+   particles = zeros(3,50);
+   particles = particleFilter(particles,t,P);
    gpshat = gpsKalman(gpshat,Vahat, qhat,rhat, phihat, thetahat, gps, P);
    pnhat = gpshat(1);
    pehat = gpshat(2);

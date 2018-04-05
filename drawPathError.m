@@ -1,4 +1,4 @@
-function drawPathError(uu)
+function drawPathError(uu, particles)
 
     % process inputs to function
     pn       = uu(1);       % inertial North position     

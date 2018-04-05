@@ -134,7 +134,7 @@ function handle = drawWaypoints(waypoints, R_min, handle, mode)
     else
         XX = [];
         YY = [];
-        for i=2:size(waypoints,1),
+        for i=2:size(waypoints,1)
             dubinspath = dubinsParameters(waypoints(i-1,:),waypoints(i,:),R_min);
             [tmpX,tmpY] = pointsAlongDubinsPath(dubinspath,0.1);
             XX = [XX; tmpX];

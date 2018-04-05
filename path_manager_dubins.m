@@ -99,7 +99,7 @@ function out = path_manager_dubins(in,P,start_of_simulation)
       case 1 % follow first orbit on Dubins path until intersect H1
           flag   = 2;  % following orbit
           Va_d   = waypoints(5,ptr_b); % desired airspeed along waypoint path
-          r      = waypoints(1:3,ptr_a);
+          r      = waypoints(1:3,ptr_a);%
           q      = dubinspath.q1;
           c      = dubinspath.cs;
           rho    = dubinspath.R;
@@ -122,7 +122,7 @@ function out = path_manager_dubins(in,P,start_of_simulation)
           q      = dubinspath.q1;%
           c      = dubinspath.cs;%
           rho    = dubinspath.R;%
-          lambda = dubinspath.lame;%
+          lambda = dubinspath.lams;%
           
           if (p-dubinspath.w1)'*dubinspath.q1 < 0 % get to right side H1
               state_transition = 1;
@@ -136,9 +136,9 @@ function out = path_manager_dubins(in,P,start_of_simulation)
           Va_d   = waypoints(5,ptr_b); % desired airspeed along waypoint path
           r      = dubinspath.w1;
           q      = dubinspath.q1;
-          c      = dubinspath.ce;%
+          c      = dubinspath.cs;%
           rho    = dubinspath.R;%
-          lambda = dubinspath.lame;%
+          lambda = dubinspath.lams;%
           flag_first_time_in_state = 0;
           
           if (p-dubinspath.w2)'*dubinspath.q1 >= 0 % entering H2
