@@ -25,6 +25,7 @@ function path=planCoverDubins(wpp_start, R, map)
        
     % look ahead tree parameters
     L = 4*R+20;  % segment Length
+    L_view = 50;
     vartheta = pi/4; % search angle
     depth = 5; % depth of look ahead tree
     
@@ -36,11 +37,17 @@ function path=planCoverDubins(wpp_start, R, map)
         %TODO create dubins path from next_path
         
         
-        path = [path; next_path(1,:)];
         % update the return map
-        return_map = updateReturnMap(next_path(1,:),return_map,map);
-        plotReturnMap(return_map), %pause 
+        point = path(end,1:3);
+        Y = point(2):50:next_point(2) %linspace(point(1),next_path(1), 50);
+        
+        while (norm(next_path(1,1:3) - point(1:3)) > L_view)
+            return_map = updateReturnMap(point,return_map,map);
+            plotReturnMap(return_map), %pause 
+            point = point + L_view*(next_path(1,1:3) - point(1:3))/norm(next_path(1,1:3)-point(1:3));
+        end
         % set the end of the path as the root of the tree
+        path = [path; next_path(1,:)];
     end
     
     % remove path segments where there is no turn
