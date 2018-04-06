@@ -4,6 +4,7 @@
 %% Last Modified - 11/15/2010 - R. Beard
 
 function path=planCoverDubins(wpp_start, R, map)
+    persistent return_map
 
     segmentLength = 4*R+20;
     
@@ -17,8 +18,12 @@ function path=planCoverDubins(wpp_start, R, map)
  
     % return map
     returnMapSize = 30;  % this is a critical parameter!
-    return_map = 50*ones(returnMapSize,returnMapSize)+ rand(returnMapSize,returnMapSize);
-    plotReturnMap(return_map), %pause
+    if isempty(return_map)
+        return_map = 50*ones(returnMapSize,returnMapSize)+ rand(returnMapSize,returnMapSize);
+        plotReturnMap(return_map), %pause
+    else
+        return_map = min(return_map+5, 50);
+    end
 
     % construct search path by doing N search cycles
     SEARCH_CYCLES = 50;  % number of search cycles
