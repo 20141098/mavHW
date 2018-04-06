@@ -80,9 +80,17 @@ function dubinspath = dubinsParameters(start_node, end_node, R)
     L4 = norm(cls-cle)+R*mod(2*pi+mod(chis+pi/2,2*pi)-mod(theta+pi/2,2*pi),2*pi) + R*mod(2*pi+mod(theta+pi/2,2*pi)-mod(chie+pi/2,2*pi),2*pi);
     % L is the minimum distance
     [L,idx] = min([L1,L2,L3,L4]);
+%     if chie == chis
+%         idx = 0;
+%     end
 
     e1 = [1; 0; 0];
     switch(idx)
+%         case 0
+%             cs = ps;
+%             ce = pe;
+%             q1 = 
+
         case 1
             cs = crs;
             lams = 1;

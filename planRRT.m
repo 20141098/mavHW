@@ -9,7 +9,7 @@
 function path_out=planRRT(wpp_start, wpp_end, map, R)
 
     % standard length of path segments
-    segmentLength = 2*R+5;
+    segmentLength = 4*R+20;
 
     % desired down position is down position of end node
     pd = wpp_end(3);
@@ -133,7 +133,7 @@ function [new_tree,flag] = extendTree(tree,end_node,segmentLength,map,pd,chi)
     new_point = tree(idx,1:3)+L*(tmp/norm(tmp));
     new_node = [new_point, chi, cost, idx, 0]; 
 
-    if collision(tree(idx,:), new_node, map)==0
+    if collision(tree(idx,:), new_node, map)==0 && norm(tree(idx,1:3)-new_node(1:3))>segmentLength
       new_tree = [tree; new_node];
       flag1=1;
     end
@@ -198,7 +198,7 @@ function newPath = smoothPath(path,map)
     newPath = [newPath; path(end,:)];
     
     newPath(2:end-1,4) = atan2(newPath(3:end,2) - newPath(2:end-1,2),newPath(3:end,1)-newPath(2:end-1,1));
-    newPath(end,4) = newPath(end-1,4);
+    newPath(end,4) = 0;
 %     newPath = newPath(1:end-1,:);
 
 end

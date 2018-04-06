@@ -6,10 +6,10 @@
 %% Last Modified - 6/8/2006 - R. Beard
 %%               - 4/15/2010 - R. Beard
 
-function path_out=planRRTDubins(wpp_start, wpp_end, R_min, map)
+function path_out=planRRT(wpp_start, wpp_end, map, R)
 
     % standard length of path segments
-    segmentLength = 2*R_min + 5;
+    segmentLength = 4*R+20;
 
     % desired down position is down position of end node
     pd = wpp_end(3);
@@ -24,20 +24,20 @@ function path_out=planRRTDubins(wpp_start, wpp_end, R_min, map)
     tree = start_node;
     
     % check to see if start_node connects directly to end_node
-    if ( (norm(start_node(1:3)-end_node(1:3))<segmentLength )...
-            &(collision(start_node,end_node,map,R_min)==0) )
+    if ( (norm(start_node(1:3)-end_node(1:3))>segmentLength )...
+            &&(collision(start_node,end_node,R,map)==0) )
         path = [start_node; end_node];
     else
         numPaths = 0;
-        while numPaths<3,
-            [tree,flag] = extendTree(tree,end_node,segmentLength,map,pd,chi,R_min);
+        while numPaths<3
+            [tree,flag] = extendTree(tree,end_node,segmentLength,R,map,pd,chi);
             numPaths = numPaths + flag;
         end
     end
 
     % find path with minimum cost to end_node
     path = findMinimumPath(tree,end_node);
-    path_out = smoothPath(path,map);
+    path_out = smoothPath(path,R,map);
     plotmap(map,path,path_out,tree);
 
 end
@@ -60,23 +60,99 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% collision
 %%   check to see if a node is in collsion with obstacles
-function collision_flag = collision(start_node, end_node, map, R)
+function collision_flag = collision(start_node, end_node, R_min, map)
 
     collision_flag = 0;
-    dubinspath = dubinsParameters(start_node, end_node, R);
-    if isstruct(dubinspath) ~= 1
-%         dubinspath
-        collision_flag = 1;
-    else
-        [X,Y,Z] = pointsAlongPath(start_node, end_node, 0.1);
+    
+    [X,Y,Z] = pointsAlongPath(start_node, end_node, 0.1);
 
-        for i = 1:length(X),
-            if Z(i) >= downAtNE(map, X(i), Y(i)),
-                collision_flag = 1;
-            end
+    for i = 1:length(X)
+        if Z(i) >= downAtNE(map, X(i), Y(i))
+            collision_flag = 1;
         end
     end
     
+end
+
+% function collision_flag = collision(start_node, end_node, R_min, map)
+%     X = [];
+%     Y = [];
+%     
+%     
+%     if norm(end_node(1:2)-start_node(1:2)) < R_min*4 + 20
+%         collision_flag = 1;
+%     else
+%         dubinspath = dubinsParameters(start_node, end_node, R_min);
+%         [tmpX,tmpY] = pointsAlongDubinsPath(dubinspath,0.1);
+%         X = [X; tmpX];
+%         Y = [Y; tmpY];     
+% 
+%         Z = start_node(3);
+% 
+%         collision_flag = 0;
+%         for i = 1:length(X)
+%             if Z >= downAtNE(map, X(i), Y(i))
+%                 collision_flag = 1;
+%             end
+%         end
+%     end
+% end
+
+function [X,Y] = pointsAlongDubinsPath(dubinspath,Del)
+
+
+  % points along start circle
+  th1 = mod(atan2(dubinspath.ps(2)-dubinspath.cs(2),dubinspath.ps(1)-dubinspath.cs(1)),2*pi);
+  th2 = mod(atan2(dubinspath.w1(2)-dubinspath.cs(2),dubinspath.w1(1)-dubinspath.cs(1)),2*pi);
+%   if dubinspath.lams>0
+%       if th1>=th2
+%         th = [th1:Del:2*pi,0:Del:th2];
+%       else
+%         th = [th1:Del:th2];
+%       end
+%   else
+%       if th1<=th2
+%         th = [th1:-Del:0,2*pi:-Del:th2];
+%       else
+%         th = [th1:-Del:th2];
+%       end
+%   end
+  X = [];
+  Y = [];
+%   for i=1:length(th)
+%     X = [X; dubinspath.cs(1)+dubinspath.R*cos(th(i))]; 
+%     Y = [Y; dubinspath.cs(2)+dubinspath.R*sin(th(i))];
+%   end
+  
+  % points along straight line 
+  sig = 0;
+  while sig<=1
+      X = [X; (1-sig)*dubinspath.w1(1) + sig*dubinspath.w2(1)];
+      Y = [Y; (1-sig)*dubinspath.w1(2) + sig*dubinspath.w2(2)];
+      sig = sig + Del;
+  end
+    
+%   % points along end circle
+%   th2 = mod(atan2(dubinspath.pe(2)-dubinspath.ce(2),dubinspath.pe(1)-dubinspath.ce(1)),2*pi);
+%   th1 = mod(atan2(dubinspath.w2(2)-dubinspath.ce(2),dubinspath.w2(1)-dubinspath.ce(1)),2*pi);
+%   if dubinspath.lame>0
+%       if th1>=th2
+%         th = [th1:Del:2*pi,0:Del:th2];
+%       else
+%         th = [th1:Del:th2];
+%       end
+%   else
+%       if th1<=th2
+%         th = [th1:-Del:0,2*pi:-Del:th2];
+%       else
+%         th = [th1:-Del:th2];
+%       end
+%   end
+%   for i=1:length(th)
+%     X = [X; dubinspath.ce(1)+dubinspath.R*cos(th(i))]; 
+%     Y = [Y; dubinspath.ce(2)+dubinspath.R*sin(th(i))];
+%   end
+  
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -94,74 +170,12 @@ function [X,Y,Z] = pointsAlongPath(start_node, end_node, Del)
     q = q/L;
     
     w = start_node(1:3);
-    for i=2:floor(L/Del)
+    for i=2:floor(L/Del),
         w = w + Del*q;
         X = [X, w(1)];
         Y = [Y, w(2)];
         Z = [Z, w(3)];
     end
-end
-
-
-function [X,Y,Z] = pointsAlongDubinsPath(dubinspath,Del)
-
-
-  % points along start circle
-  th1 = mod(atan2(dubinspath.ps(2)-dubinspath.cs(2),dubinspath.ps(1)-dubinspath.cs(1)),2*pi);
-  th2 = mod(atan2(dubinspath.w1(2)-dubinspath.cs(2),dubinspath.w1(1)-dubinspath.cs(1)),2*pi);
-  if dubinspath.lams>0,
-      if th1>=th2,
-        th = [th1:Del:2*pi,0:Del:th2];
-      else
-        th = [th1:Del:th2];
-      end
-  else
-      if th1<=th2,
-        th = [th1:-Del:0,2*pi:-Del:th2];
-      else
-        th = [th1:-Del:th2];
-      end
-  end
-  X = [];
-  Y = [];
-  Z = [];
-  for i=1:length(th),
-    X = [X; dubinspath.cs(1)+dubinspath.R*cos(th(i))]; 
-    Y = [Y; dubinspath.cs(2)+dubinspath.R*sin(th(i))];
-    Z = [Z; dubinspath.ps(3)];
-  end
-  
-  % points along straight line 
-  sig = 0;
-  while sig<=1,
-      X = [X; (1-sig)*dubinspath.w1(1) + sig*dubinspath.w2(1)];
-      Y = [Y; (1-sig)*dubinspath.w1(2) + sig*dubinspath.w2(2)];
-      Z = [Z; (1-sig)*dubinspath.w1(3) + sig*dubinspath.w2(3)];
-      sig = sig + Del;
-  end
-    
-  % points along end circle
-  th2 = mod(atan2(dubinspath.pe(2)-dubinspath.ce(2),dubinspath.pe(1)-dubinspath.ce(1)),2*pi);
-  th1 = mod(atan2(dubinspath.w2(2)-dubinspath.ce(2),dubinspath.w2(1)-dubinspath.ce(1)),2*pi);
-  if dubinspath.lame>0
-      if th1>=th2
-        th = [th1:Del:2*pi,0:Del:th2];
-      else
-        th = [th1:Del:th2];
-      end
-  else
-      if th1<=th2
-        th = [th1:-Del:0,2*pi:-Del:th2];
-      else
-        th = [th1:-Del:th2];
-      end
-  end
-  for i=1:length(th)
-    X = [X; dubinspath.ce(1)+dubinspath.R*cos(th(i))]; 
-    Y = [Y; dubinspath.ce(2)+dubinspath.R*sin(th(i))];
-    Z = [Z; dubinspath.pe(3)];
-  end
-  
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -172,7 +186,7 @@ function down = downAtNE(map, n, e)
       [d_n,idx_n] = min(abs(n - map.buildings_n));
       [d_e,idx_e] = min(abs(e - map.buildings_e));
 
-      if (d_n<=map.BuildingWidth) && (d_e<=map.BuildingWidth),
+      if (d_n<=map.BuildingWidth) && (d_e<=map.BuildingWidth)
           down = -map.heights(idx_e,idx_n);
       else
           down = 0;
@@ -184,36 +198,31 @@ end
 %% extendTree
 %%   extend tree by randomly selecting point and growing tree toward that
 %%   point
-function [new_tree,flag] = extendTree(tree,end_node,segmentLength,map,pd,chi,R_min)
+function [new_tree,flag] = extendTree(tree,end_node,segmentLength,R_min,map,pd,chi)
 
   flag1 = 0;
   while flag1==0
     % select a random point
-%     L = 0
-%     while L < segmentLength
     randomNode=generateRandomNode(map,pd,chi);
-
+    
     % find leaf on node that is closest to randomPoint
     tmp = tree(:,1:3)-ones(size(tree,1),1)*randomNode(1:3);
     [dist,idx] = min(diag(tmp*tmp'));
-    L = min(sqrt(dist), segmentLength);
-%     end
+    L = min(sqrt(dist), segmentLength); 
     cost     = tree(idx,5) + L;
     tmp = randomNode(1:3)-tree(idx,1:3);
     new_point = tree(idx,1:3)+L*(tmp/norm(tmp));
     new_node = [new_point, chi, cost, idx, 0]; 
-    
-    dist2End = norm(new_point - end_node(1:3));
 
-    if collision(tree(idx,:), new_node, map, R_min)==0 && dist2End > 2*R_min
+    if collision(tree(idx,:), new_node, R_min, map)==0
       new_tree = [tree; new_node];
       flag1=1;
     end
   end
   
   % check to see if new node connects directly to end_node
-  if ( (norm(new_node(1:3)-end_node(1:3))<segmentLength )...
-      &&(collision(new_node,end_node,map,R_min)==0) )
+  if ( (norm(new_node(1:3)-end_node(1:3))>segmentLength )...
+      &&(collision(new_node,end_node,R_min,map)==0) )
     flag = 1;
     new_tree(end,7)=1;  % mark node as connecting to end.
   else
@@ -236,33 +245,42 @@ function path = findMinimumPath(tree,end_node)
     end
 
     % find minimum cost last node
-    [tmp,idx] = min(connectingNodes(:,5));
+    [~,idx] = min(connectingNodes(:,5));
 
     
     % construct lowest cost path
-    path = [connectingNodes(idx,:); end_node];
+    second_node = connectingNodes(idx,:);
+    path = [second_node;end_node];
+%     path = [connectingNodes(idx,:); end_node];
     parent_node = connectingNodes(idx,6);
-    while parent_node>1,
+    while parent_node>1
         parent_node = tree(parent_node,6);
-        path = [tree(parent_node,:); path];
+        new_node = tree(parent_node,:);
+        path = [new_node;path];
+%         path = [tree(parent_node,:); path];
     end
+%     path = path(1:end-1,:);
     
 end
   
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% smoothPath
 %%   smooth the waypoint path 
-function newPath = smoothPath(path,map)
+function newPath = smoothPath(path,R_min,map)
 
     newPath = path(1,:); % add the start node 
     ptr =2;  % pointer into the path
     while ptr <= size(path,1)-1,
-        if collision(newPath(end,:), path(ptr+1,:), map)~=0, % if there is a collision
+        if collision(newPath(end,:), path(ptr+1,:), R_min, map)~=0, % if there is a collision
             newPath = [newPath; path(ptr,:)];  % add previous node
         end
         ptr=ptr+1;
     end
     newPath = [newPath; path(end,:)];
+    
+    newPath(2:end-1,4) = atan2(newPath(3:end,2) - newPath(2:end-1,2),newPath(3:end,1)-newPath(2:end-1,1));
+    newPath(end,4) = newPath(end-1,4) + pi/12;
+%     newPath = newPath(1:end-1,:);
 
 end
 
@@ -301,7 +319,7 @@ function plotmap(map,path,smoothedPath,tree)
                      'FaceColor','flat');
    
     % draw tree
-    for i=2:size(tree,1),
+    for i=2:size(tree,1)
         X = [tree(i,1), tree(tree(i,6),1)];
         Y = [tree(i,2), tree(tree(i,6),2)];   
         Z = [tree(i,3), tree(tree(i,6),3)];            
