@@ -39,7 +39,7 @@ function path=planCoverDubins(wpp_start, R, map)
         
         % update the return map
         point = path(end,1:3);
-        Y = point(2):50:next_point(2) %linspace(point(1),next_path(1), 50);
+%         Y = point(2):50:next_point(2) %linspace(point(1),next_path(1), 50);
         
         while (norm(next_path(1,1:3) - point(1:3)) > L_view)
             return_map = updateReturnMap(point,return_map,map);
